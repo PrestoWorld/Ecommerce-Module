@@ -1,0 +1,19 @@
+{
+    "name": "ecommerce",
+    "version": "1.0.0",
+    "description": "Core e-commerce module: domain storage, repositories and shared upstream integration for Bookowl middleman modules",
+    "type": "support",
+    "priority": 30,
+    "enabled": true,
+    "namespace": "PrestoWorld\\Modules\\Ecommerce",
+    "entry": "Module.php",
+    "requires": { "php": "^8.1" },
+    "dependencies": [],
+    "providers": [],
+    "route_prefix": "",
+    "routes": [],
+    "provides": ["ecommerce.storage", "ecommerce.upstream"],
+    "autoload": {
+        "psr-4": { "PrestoWorld\\Modules\\Ecommerce\\": "." }
+    }
+}
