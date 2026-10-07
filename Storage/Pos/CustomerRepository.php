@@ -71,12 +71,12 @@ final class CustomerRepository extends AbstractRepository implements CustomerRep
             $values['id'] = (int) $result;
         } else {
             $existing = (array) $existing;
-            $id = (int) ($existing['id'] ?? 0);
+            $id = $this->int($existing, 'id');
             $this->db->update($this->table('customers'), $values, ['id' => $id])->run();
             $values['id'] = $id;
         }
 
-        $values['payload'] = $this->decode(is_string($values['payload']) ? $values['payload'] : null);
+        $values['payload'] = $this->decode($values['payload']);
 
         return $values;
     }

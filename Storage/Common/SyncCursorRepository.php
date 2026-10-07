@@ -44,6 +44,6 @@ final class SyncCursorRepository extends AbstractRepository implements SyncCurso
 
         $existing = (array) $existing;
         unset($values['resource']);
-        $this->db->update($this->table('sync_cursors'), $values, ['id' => (int) ($existing['id'] ?? 0)])->run();
+        $this->db->update($this->table('sync_cursors'), $values, ['id' => $this->int($existing, 'id')])->run();
     }
 }

@@ -66,12 +66,12 @@ final class OrderRepository extends AbstractRepository implements OrderRepositor
             $values['id'] = (int) $result;
         } else {
             $existing = (array) $existing;
-            $id = (int) ($existing['id'] ?? 0);
+            $id = $this->int($existing, 'id');
             $this->db->update($this->table('orders'), $values, ['id' => $id])->run();
             $values['id'] = $id;
         }
 
-        $values['payload'] = $this->decode(is_string($values['payload']) ? $values['payload'] : null);
+        $values['payload'] = $this->decode($values['payload']);
 
         return $values;
     }
@@ -94,7 +94,7 @@ final class OrderRepository extends AbstractRepository implements OrderRepositor
     {
         $max = $this->db->select('id')->from($this->table('orders'))->max('id');
 
-        return ((int) $max) + 1;
+        return (is_numeric($max) ? (int) $max : 0) + 1;
     }
 
     private function baseQuery(string $businessId, array $filters): SelectQuery
@@ -118,7 +118,7 @@ final class OrderRepository extends AbstractRepository implements OrderRepositor
                 ->orWhere('code', 'LIKE', '%' . $keyword . '%'));
         }
 
-        if (isset($filters['status']) && $filters['status'] !== '' && $filters['status'] !== null) {
+        if (isset($filters['status']) && $filters['status'] !== '') {
             $query->where('status', (string) $filters['status']);
         }
 

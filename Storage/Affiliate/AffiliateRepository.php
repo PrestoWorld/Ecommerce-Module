@@ -206,7 +206,7 @@ final class AffiliateRepository extends AbstractRepository implements AffiliateR
             $this->db->insert($this->table('affiliate_orders'))->values($values)->run();
         } else {
             $existing = (array) $existing;
-            $this->db->update($this->table('affiliate_orders'), $values, ['id' => (int) ($existing['id'] ?? 0)])->run();
+            $this->db->update($this->table('affiliate_orders'), $values, ['id' => $this->int($existing, 'id')])->run();
         }
     }
 

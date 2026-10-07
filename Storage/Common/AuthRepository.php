@@ -54,7 +54,7 @@ final class AuthRepository extends AbstractRepository implements AuthRepositoryI
             'token' => $token,
             'expires_at' => $expiresAt,
             'created_at' => time(),
-        ], ['id' => (int) ($existing['id'] ?? 0)])->run();
+        ], ['id' => $this->int($existing, 'id')])->run();
     }
 
     public function touchToken(string $appId, string $businessId, int $now): void
@@ -90,6 +90,6 @@ final class AuthRepository extends AbstractRepository implements AuthRepositoryI
             'secret_key' => $secretKey,
             'name' => $name,
             'status' => 1,
-        ], ['id' => (int) ($existing['id'] ?? 0)])->run();
+        ], ['id' => $this->int($existing, 'id')])->run();
     }
 }
