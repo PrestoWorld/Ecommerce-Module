@@ -44,7 +44,7 @@ final class VpageRepository extends AbstractRepository implements VpageRepositor
             $this->db->insert($this->table('pages'))->values($values)->run();
         } else {
             $existing = (array) $existing;
-            $this->db->update($this->table('pages'), $values, ['id' => (int) ($existing['id'] ?? 0)])->run();
+            $this->db->update($this->table('pages'), $values, ['id' => $this->int($existing, 'id')])->run();
         }
     }
 
@@ -89,7 +89,7 @@ final class VpageRepository extends AbstractRepository implements VpageRepositor
             $this->db->insert($this->table('conversations'))->values($values)->run();
         } else {
             $existing = (array) $existing;
-            $this->db->update($this->table('conversations'), $values, ['id' => (int) ($existing['id'] ?? 0)])->run();
+            $this->db->update($this->table('conversations'), $values, ['id' => $this->int($existing, 'id')])->run();
         }
     }
 
@@ -141,7 +141,7 @@ final class VpageRepository extends AbstractRepository implements VpageRepositor
             $this->db->insert($this->table('messages'))->values($values)->run();
         } else {
             $existing = (array) $existing;
-            $this->db->update($this->table('messages'), $values, ['id' => (int) ($existing['id'] ?? 0)])->run();
+            $this->db->update($this->table('messages'), $values, ['id' => $this->int($existing, 'id')])->run();
         }
     }
 
