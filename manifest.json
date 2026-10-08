@@ -8,11 +8,16 @@
     "namespace": "PrestoWorld\\Modules\\Ecommerce",
     "entry": "Module.php",
     "requires": { "php": "^8.1" },
-    "dependencies": [],
+    "dependencies": ["headless-cms"],
     "providers": [],
     "route_prefix": "",
     "routes": [],
-    "provides": ["ecommerce.storage", "ecommerce.upstream"],
+    "headless": {
+        "providers": {
+            "ecommerce": "PrestoWorld\\Modules\\Ecommerce\\Headless\\EcommerceProvider"
+        }
+    },
+    "provides": ["ecommerce.storage", "ecommerce.upstream", "ecommerce.headless"],
     "autoload": {
         "psr-4": { "PrestoWorld\\Modules\\Ecommerce\\": "." }
     }

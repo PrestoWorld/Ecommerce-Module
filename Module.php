@@ -17,6 +17,7 @@ use PrestoWorld\Modules\Ecommerce\Contracts\ShippingDirectoryRepositoryInterface
 use PrestoWorld\Modules\Ecommerce\Contracts\SyncCursorRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\VpageRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\WebhookRepositoryInterface;
+use PrestoWorld\Modules\Ecommerce\Headless\EcommerceProvider;
 use PrestoWorld\Modules\Ecommerce\Services\NhanhClient;
 use PrestoWorld\Modules\Ecommerce\Storage\Affiliate\AffiliateRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Common\AuthRepository;
@@ -54,6 +55,15 @@ class Module extends WitalsModule
         $this->bindRepositories();
 
         $this->app->singleton(NhanhClient::class, fn (Application $app) => new NhanhClient($app));
+
+        $this->app->singleton(EcommerceProvider::class, function (Application $app): EcommerceProvider {
+            return new EcommerceProvider(
+                $this->resolve($app, ProductRepositoryInterface::class),
+                $this->resolve($app, OrderRepositoryInterface::class),
+                $this->resolve($app, CustomerRepositoryInterface::class),
+                $this->headlessBusinessId($app),
+            );
+        });
     }
 
     public function boot(): void
@@ -88,6 +98,47 @@ class Module extends WitalsModule
         foreach ($bindings as $abstract => $concrete) {
             $this->app->singleton($abstract, fn (Application $app) => new $concrete($db($app), $prefix($app)));
         }
+    }
+
+    private function headlessBusinessId(Application $app): string
+    {
+        return $this->configString(
+            $app,
+            'ecommerce.headless.business_id',
+            $this->configString($app, 'nhanh-sync.business_id', ''),
+        );
+    }
+
+    private function configString(Application $app, string $key, string $default): string
+    {
+        $value = $app->config($key, $default);
+
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (string) $value;
+        }
+
+        return $default;
+    }
+
+    /**
+     * @template T of object
+     *
+     * @param class-string<T> $abstract
+     *
+     * @return T
+     */
+    private function resolve(Application $app, string $abstract): object
+    {
+        $instance = $app->make($abstract);
+        if (!$instance instanceof $abstract) {
+            throw new \RuntimeException(sprintf('%s is not bound in the container.', $abstract));
+        }
+
+        return $instance;
     }
 
     private function resolveDatabase(Application $app): DatabaseInterface

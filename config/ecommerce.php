@@ -6,6 +6,15 @@ return [
     'table_prefix' => getenv('NHANH_API_TABLE_PREFIX')
         ?: (getenv('PW_TABLE_PREFIX') ?: 'pw_'),
 
+    /*
+     * Headless-CMS exposure: the business id whose POS data is published,
+     * plus the API key store used for write operations.
+     */
+    'headless' => [
+        'business_id' => getenv('ECOMMERCE_HEADLESS_BUSINESS_ID')
+            ?: (getenv('NHANH_SYNC_BUSINESS_ID') ?: ''),
+    ],
+
     'upstream' => [
         'version' => 'v3.0',
         'timeout' => 30,
