@@ -1,0 +1,17 @@
+{
+    "name": "catalog",
+    "version": "1.0.0",
+    "description": "Product Catalog - 3-level hierarchy: Master (book info), Variant (inventory), Channel (distribution)",
+    "author": "BookOwl Team",
+    "namespace": "PrestoWorld\\Modules\\Catalog",
+    "providers": [
+        "PrestoWorld\\Modules\\Catalog\\Module"
+    ],
+    "config": [
+        "config/catalog.php"
+    ],
+    "migrations": [
+        "Migrations/002_product_hierarchy.php"
+    ],
+    "dependencies": []
+}

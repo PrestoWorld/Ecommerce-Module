@@ -1,0 +1,20 @@
+{
+    "name": "order",
+    "version": "1.0.0",
+    "description": "Order Management - Orders, Carts, Quotes",
+    "author": "BookOwl Team",
+    "namespace": "PrestoWorld\\Modules\\Order",
+    "providers": [
+        "PrestoWorld\\Modules\\Order\\Module"
+    ],
+    "config": [
+        "config/order.php"
+    ],
+    "migrations": [
+        "Migrations/001_order_tables.php"
+    ],
+    "dependencies": [
+        "shared-kernel",
+        "catalog"
+    ]
+}

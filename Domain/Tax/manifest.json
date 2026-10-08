@@ -1,0 +1,20 @@
+{
+    "name": "tax",
+    "version": "1.0.0",
+    "description": "Tax Calculation - Rates, Rules, Calculator",
+    "author": "BookOwl Team",
+    "namespace": "PrestoWorld\\Modules\\Tax",
+    "providers": [
+        "PrestoWorld\\Modules\\Tax\\Module"
+    ],
+    "config": [
+        "config/tax.php"
+    ],
+    "migrations": [
+        "Migrations/001_tax_tables.php"
+    ],
+    "dependencies": [
+        "shared-kernel",
+        "catalog"
+    ]
+}

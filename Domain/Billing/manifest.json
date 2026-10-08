@@ -1,0 +1,20 @@
+{
+    "name": "billing",
+    "version": "1.0.0",
+    "description": "Billing & Payments - Invoices, Payments, Refunds",
+    "author": "BookOwl Team",
+    "namespace": "PrestoWorld\\Modules\\Billing",
+    "providers": [
+        "PrestoWorld\\Modules\\Billing\\Module"
+    ],
+    "config": [
+        "config/billing.php"
+    ],
+    "migrations": [
+        "Migrations/001_billing_tables.php"
+    ],
+    "dependencies": [
+        "shared-kernel",
+        "order"
+    ]
+}

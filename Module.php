@@ -17,6 +17,20 @@ use PrestoWorld\Modules\Ecommerce\Contracts\ShippingDirectoryRepositoryInterface
 use PrestoWorld\Modules\Ecommerce\Contracts\SyncCursorRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\VpageRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\WebhookRepositoryInterface;
+
+// Domain modules
+use PrestoWorld\Modules\Ecommerce\Domain\SharedKernel\Module as SharedKernelModule;
+use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Module as CatalogModule;
+use PrestoWorld\Modules\Ecommerce\Domain\Order\Module as OrderModule;
+use PrestoWorld\Modules\Ecommerce\Domain\Billing\Module as BillingModule;
+use PrestoWorld\Modules\Ecommerce\Domain\Tax\Module as TaxModule;
+use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Module as InventoryModule;
+use PrestoWorld\Modules\Ecommerce\Domain\Payment\Module as PaymentModule;
+use PrestoWorld\Modules\Ecommerce\Domain\Shipping\Module as ShippingModule;
+use PrestoWorld\Modules\Ecommerce\Domain\Customer\Module as CustomerModule;
+use PrestoWorld\Modules\Ecommerce\Domain\Sales\Module as SalesModule;
+
+// Legacy POS integrations
 use PrestoWorld\Modules\Ecommerce\Headless\EcommerceProvider;
 use PrestoWorld\Modules\Ecommerce\Services\NhanhClient;
 use PrestoWorld\Modules\Ecommerce\Storage\Affiliate\AffiliateRepository;
@@ -52,10 +66,16 @@ class Module extends WitalsModule
 
     public function register(): void
     {
-        $this->bindRepositories();
+        // Register domain modules
+        $this->registerDomainModules();
 
+        // Bind legacy POS repositories
+        $this->bindLegacyRepositories();
+
+        // Nhanh.vn integration
         $this->app->singleton(NhanhClient::class, fn (Application $app) => new NhanhClient($app));
 
+        // Headless CMS provider
         $this->app->singleton(EcommerceProvider::class, function (Application $app): EcommerceProvider {
             return new EcommerceProvider(
                 $this->resolve($app, ProductRepositoryInterface::class),
@@ -66,16 +86,28 @@ class Module extends WitalsModule
         });
     }
 
-    public function boot(): void
+    private function registerDomainModules(): void
     {
+        $domainModules = [
+            SharedKernelModule::class,
+            CatalogModule::class,
+            OrderModule::class,
+            BillingModule::class,
+            TaxModule::class,
+            InventoryModule::class,
+            PaymentModule::class,
+            ShippingModule::class,
+            CustomerModule::class,
+            SalesModule::class,
+        ];
+
+        foreach ($domainModules as $moduleClass) {
+            $module = new $moduleClass($this->app, $this->path . '/Domain/' . (new \ReflectionClass($moduleClass))->getShortName());
+            $module->register();
+        }
     }
 
-    public function getName(): string
-    {
-        return 'Ecommerce';
-    }
-
-    private function bindRepositories(): void
+    private function bindLegacyRepositories(): void
     {
         $prefix = fn (Application $app): string => (string) ($app->config('ecommerce.table_prefix', 'pw_') ?: 'pw_');
         $db = fn (Application $app): DatabaseInterface => $this->resolveDatabase($app);
@@ -98,6 +130,15 @@ class Module extends WitalsModule
         foreach ($bindings as $abstract => $concrete) {
             $this->app->singleton($abstract, fn (Application $app) => new $concrete($db($app), $prefix($app)));
         }
+    }
+
+    public function boot(): void
+    {
+    }
+
+    public function getName(): string
+    {
+        return 'Ecommerce';
     }
 
     private function headlessBusinessId(Application $app): string

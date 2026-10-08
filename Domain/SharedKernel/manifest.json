@@ -1,0 +1,14 @@
+{
+    "name": "shared-kernel",
+    "version": "1.0.0",
+    "description": "Shared Kernel - Common value objects, domain events, and exceptions",
+    "author": "BookOwl Team",
+    "namespace": "PrestoWorld\\Modules\\SharedKernel",
+    "providers": [
+        "PrestoWorld\\Modules\\SharedKernel\\Module"
+    ],
+    "config": [
+        "config/shared-kernel.php"
+    ],
+    "dependencies": []
+}

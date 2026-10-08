@@ -1,0 +1,20 @@
+{
+    "name": "inventory",
+    "version": "1.0.0",
+    "description": "Inventory Management - Stock, Locations, Reservations, Movements",
+    "author": "BookOwl Team",
+    "namespace": "PrestoWorld\\Modules\\Ecommerce\\Domain\\Inventory",
+    "providers": [
+        "PrestoWorld\\Modules\\Ecommerce\\Domain\\Inventory\\Module"
+    ],
+    "config": [
+        "config/inventory.php"
+    ],
+    "migrations": [
+        "Migrations/001_inventory_tables.php"
+    ],
+    "dependencies": [
+        "shared-kernel",
+        "catalog"
+    ]
+}
