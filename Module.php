@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PrestoWorld\Modules\Ecommerce;
 
 use Cycle\Database\DatabaseInterface;
+use PrestoWorld\Foundation\Admin\DashboardSubsystem;
 use PrestoWorld\Modules\Ecommerce\Contracts\AffiliateRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\AuthRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\CustomerRepositoryInterface;
@@ -134,6 +135,14 @@ class Module extends WitalsModule
 
     public function boot(): void
     {
+        DashboardSubsystem::register(
+            $this->app,
+            'orders',
+            'Quản Lý Đơn Hàng',
+            'Chốt đơn & vận chuyển',
+            'ShoppingBag',
+            20,
+        );
     }
 
     public function getName(): string
