@@ -33,6 +33,7 @@ return new class implements MigrationInterface {
         $this->draftBills($db, $prefix);
         $this->ecomShops($db, $prefix);
         $this->ecomReturns($db, $prefix);
+        $this->invoices($db, $prefix);
     }
 
     public function down(DatabaseInterface $db, string $prefix): void
@@ -43,6 +44,7 @@ return new class implements MigrationInterface {
             'pages', 'locations', 'carriers', 'shipments',
             'affiliate_products', 'affiliate_publishers', 'affiliate_orders', 'share_links',
             'bills', 'bill_items', 'draft_bills', 'ecom_shops', 'ecom_returns',
+            'invoices',
         ];
 
         foreach ($tables as $name) {
@@ -468,6 +470,37 @@ return new class implements MigrationInterface {
         $table->index(['business_id']);
         $table->index(['external_id']);
         $table->index(['status']);
+        $table->save();
+    }
+
+    private function invoices(DatabaseInterface $db, string $prefix): void
+    {
+        $table = $this->table($db, $prefix, 'invoices');
+        $table->primary('id');
+        $table->column('business_id')->string(64);
+        $table->column('external_id')->string(64)->defaultValue('');
+        $table->column('depot_id')->integer()->defaultValue(0);
+        $table->column('reference_item_id')->string(64)->defaultValue('');
+        $table->column('tax_type')->integer()->defaultValue(0);
+        $table->column('tax_invoice_number')->string(64)->defaultValue('');
+        $table->column('tax_status')->integer()->defaultValue(0);
+        $table->column('tax_status_name')->string(128)->defaultValue('');
+        $table->column('error_code')->string(64)->defaultValue('');
+        $table->column('error_message')->text()->nullable();
+        $table->column('buyer_name')->string(255)->defaultValue('');
+        $table->column('buyer_mobile')->string(32)->defaultValue('');
+        $table->column('buyer_address')->text()->nullable();
+        $table->column('buyer_tax_code')->string(64)->defaultValue('');
+        $table->column('buyer_email')->string(128)->defaultValue('');
+        $table->column('buyer_company')->string(255)->defaultValue('');
+        $table->column('total_amount')->bigInteger()->defaultValue(0);
+        $table->column('invoice_number')->string(64)->defaultValue('');
+        $table->column('invoice_date')->string(32)->defaultValue('');
+        $table->column('created_at')->bigInteger()->defaultValue(0);
+        $table->column('payload')->text()->nullable();
+        $table->index(['business_id']);
+        $table->index(['external_id']);
+        $table->index(['tax_status']);
         $table->save();
     }
 
