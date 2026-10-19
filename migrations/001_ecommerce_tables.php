@@ -28,6 +28,11 @@ return new class implements MigrationInterface {
         $this->affiliatePublishers($db, $prefix);
         $this->affiliateOrders($db, $prefix);
         $this->shareLinks($db, $prefix);
+        $this->bills($db, $prefix);
+        $this->billItems($db, $prefix);
+        $this->draftBills($db, $prefix);
+        $this->ecomShops($db, $prefix);
+        $this->ecomReturns($db, $prefix);
     }
 
     public function down(DatabaseInterface $db, string $prefix): void
@@ -37,6 +42,7 @@ return new class implements MigrationInterface {
             'sync_cursors', 'orders', 'products', 'customers', 'conversations', 'messages',
             'pages', 'locations', 'carriers', 'shipments',
             'affiliate_products', 'affiliate_publishers', 'affiliate_orders', 'share_links',
+            'bills', 'bill_items', 'draft_bills', 'ecom_shops', 'ecom_returns',
         ];
 
         foreach ($tables as $name) {
@@ -362,6 +368,106 @@ return new class implements MigrationInterface {
         $table->column('payload')->text();
         $table->column('created_at')->bigInteger()->defaultValue(0);
         $table->index(['code'])->unique();
+        $table->save();
+    }
+
+    private function bills(DatabaseInterface $db, string $prefix): void
+    {
+        $table = $this->table($db, $prefix, 'bills');
+        $table->primary('id');
+        $table->column('business_id')->string(64);
+        $table->column('external_id')->string(64);
+        $table->column('code')->string(64)->defaultValue('');
+        $table->column('type')->integer()->defaultValue(1);
+        $table->column('status')->integer()->defaultValue(1);
+        $table->column('customer_id')->integer()->defaultValue(0);
+        $table->column('customer_name')->string(255)->defaultValue('');
+        $table->column('customer_mobile')->string(32)->defaultValue('');
+        $table->column('total_amount')->bigInteger()->defaultValue(0);
+        $table->column('note')->text()->nullable();
+        $table->column('created_at')->bigInteger()->defaultValue(0);
+        $table->column('updated_at')->bigInteger()->defaultValue(0);
+        $table->column('payload')->text()->nullable();
+        $table->index(['business_id']);
+        $table->index(['external_id']);
+        $table->index(['code']);
+        $table->index(['status']);
+        $table->save();
+    }
+
+    private function billItems(DatabaseInterface $db, string $prefix): void
+    {
+        $table = $this->table($db, $prefix, 'bill_items');
+        $table->primary('id');
+        $table->column('bill_id')->integer()->defaultValue(0);
+        $table->column('product_id')->integer()->defaultValue(0);
+        $table->column('product_code')->string(64)->defaultValue('');
+        $table->column('product_name')->string(255)->defaultValue('');
+        $table->column('quantity')->integer()->defaultValue(0);
+        $table->column('price')->bigInteger()->defaultValue(0);
+        $table->column('amount')->bigInteger()->defaultValue(0);
+        $table->column('unit')->string(32)->defaultValue('');
+        $table->column('created_at')->bigInteger()->defaultValue(0);
+        $table->column('payload')->text()->nullable();
+        $table->index(['bill_id']);
+        $table->index(['product_id']);
+        $table->save();
+    }
+
+    private function draftBills(DatabaseInterface $db, string $prefix): void
+    {
+        $table = $this->table($db, $prefix, 'draft_bills');
+        $table->primary('id');
+        $table->column('business_id')->string(64);
+        $table->column('code')->string(64)->defaultValue('');
+        $table->column('status')->integer()->defaultValue(1);
+        $table->column('total_amount')->bigInteger()->defaultValue(0);
+        $table->column('note')->text()->nullable();
+        $table->column('created_at')->bigInteger()->defaultValue(0);
+        $table->column('updated_at')->bigInteger()->defaultValue(0);
+        $table->column('payload')->text()->nullable();
+        $table->index(['business_id']);
+        $table->index(['code']);
+        $table->index(['status']);
+        $table->save();
+    }
+
+    private function ecomShops(DatabaseInterface $db, string $prefix): void
+    {
+        $table = $this->table($db, $prefix, 'ecom_shops');
+        $table->primary('id');
+        $table->column('business_id')->string(64);
+        $table->column('shop_id')->string(64)->defaultValue('');
+        $table->column('name')->string(255)->defaultValue('');
+        $table->column('channel')->string(32)->defaultValue('');
+        $table->column('status')->integer()->defaultValue(1);
+        $table->column('created_at')->bigInteger()->defaultValue(0);
+        $table->column('updated_at')->bigInteger()->defaultValue(0);
+        $table->column('payload')->text()->nullable();
+        $table->index(['business_id']);
+        $table->index(['shop_id']);
+        $table->index(['channel']);
+        $table->save();
+    }
+
+    private function ecomReturns(DatabaseInterface $db, string $prefix): void
+    {
+        $table = $this->table($db, $prefix, 'ecom_returns');
+        $table->primary('id');
+        $table->column('business_id')->string(64);
+        $table->column('external_id')->string(64)->defaultValue('');
+        $table->column('order_id')->integer()->defaultValue(0);
+        $table->column('status')->integer()->defaultValue(1);
+        $table->column('customer_name')->string(255)->defaultValue('');
+        $table->column('customer_mobile')->string(32)->defaultValue('');
+        $table->column('total_amount')->bigInteger()->defaultValue(0);
+        $table->column('note')->text()->nullable();
+        $table->column('created_at')->bigInteger()->defaultValue(0);
+        $table->column('updated_at')->bigInteger()->defaultValue(0);
+        $table->column('payload')->text()->nullable();
+        $table->index(['business_id']);
+        $table->index(['external_id']);
+        $table->index(['status']);
         $table->save();
     }
 

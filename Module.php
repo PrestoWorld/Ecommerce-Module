@@ -35,16 +35,20 @@ use PrestoWorld\Modules\Ecommerce\Domain\Sales\Module as SalesModule;
 use PrestoWorld\Modules\Ecommerce\Headless\EcommerceProvider;
 use PrestoWorld\Modules\Ecommerce\Services\NhanhClient;
 use PrestoWorld\Modules\Ecommerce\Storage\Affiliate\AffiliateRepository;
+use PrestoWorld\Modules\Ecommerce\Storage\BillRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Common\AuthRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Common\RateLimitRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Common\SyncCursorRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Common\WebhookRepository;
+use PrestoWorld\Modules\Ecommerce\Storage\EcomRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Pos\CustomerRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Pos\OrderRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Pos\ProductRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Pos\ShippingDirectoryRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Ship\ShipmentRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Vpage\VpageRepository;
+use PrestoWorld\Modules\NhanhApiReplacement\Server\Contracts\BillRepositoryInterface;
+use PrestoWorld\Modules\NhanhApiReplacement\Server\Contracts\EcomRepositoryInterface;
 use Witals\Framework\Application;
 use Witals\Framework\Module\Module as WitalsModule;
 
@@ -126,6 +130,8 @@ class Module extends WitalsModule
             ShipDirectoryRepositoryInterface::class => \PrestoWorld\Modules\Ecommerce\Storage\Ship\ShippingDirectoryRepository::class,
             VpageRepositoryInterface::class => VpageRepository::class,
             AffiliateRepositoryInterface::class => AffiliateRepository::class,
+            BillRepositoryInterface::class => BillRepository::class,
+            EcomRepositoryInterface::class => EcomRepository::class,
         ];
 
         foreach ($bindings as $abstract => $concrete) {
