@@ -149,6 +149,46 @@ class Module extends WitalsModule
             'ShoppingBag',
             20,
         );
+        DashboardSubsystem::register(
+            $this->app,
+            'products',
+            'Sản phẩm',
+            'Quản lý danh mục sản phẩm',
+            'Box',
+            10,
+        );
+        DashboardSubsystem::register(
+            $this->app,
+            'customers',
+            'Khách hàng',
+            'Quản lý khách hàng',
+            'UserGroup',
+            30,
+        );
+        DashboardSubsystem::register(
+            $this->app,
+            'bills',
+            'Hóa đơn / Phiếu XNK',
+            'Quản lý phiếu xuất nhập kho, bán lẻ',
+            'FileText',
+            40,
+        );
+        DashboardSubsystem::register(
+            $this->app,
+            'invoices',
+            'Hóa đơn điện tử',
+            'Quản lý hóa đơn điện tử',
+            'Receipt',
+            50,
+        );
+        DashboardSubsystem::register(
+            $this->app,
+            'ecom',
+            'TMĐT / Gian hàng',
+            'Quản lý gian hàng sàn & đơn trả',
+            'ShoppingCart',
+            60,
+        );
     }
 
     public function getName(): string
