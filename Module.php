@@ -143,19 +143,21 @@ class Module extends WitalsModule
     {
         DashboardSubsystem::register(
             $this->app,
-            'orders',
-            'Quản Lý Đơn Hàng',
-            'Chốt đơn & vận chuyển',
-            'ShoppingBag',
-            20,
-        );
-        DashboardSubsystem::register(
-            $this->app,
             'products',
             'Sản phẩm',
             'Quản lý danh mục sản phẩm',
             'Box',
             10,
+            'content',
+        );
+        DashboardSubsystem::register(
+            $this->app,
+            'orders',
+            'Quản Lý Đơn Hàng',
+            'Chốt đơn & vận chuyển',
+            'ShoppingBag',
+            20,
+            'ecommerce',
         );
         DashboardSubsystem::register(
             $this->app,
@@ -164,6 +166,7 @@ class Module extends WitalsModule
             'Quản lý khách hàng',
             'UserGroup',
             30,
+            'ecommerce',
         );
         DashboardSubsystem::register(
             $this->app,
@@ -172,6 +175,7 @@ class Module extends WitalsModule
             'Quản lý phiếu xuất nhập kho, bán lẻ',
             'FileText',
             40,
+            'ecommerce',
         );
         DashboardSubsystem::register(
             $this->app,
@@ -180,6 +184,7 @@ class Module extends WitalsModule
             'Quản lý hóa đơn điện tử',
             'Receipt',
             50,
+            'ecommerce',
         );
         DashboardSubsystem::register(
             $this->app,
@@ -188,6 +193,7 @@ class Module extends WitalsModule
             'Quản lý gian hàng sàn & đơn trả',
             'ShoppingCart',
             60,
+            'ecommerce',
         );
     }
 
