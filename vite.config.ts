@@ -1,9 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react()],
   base: '/assets/modules/ecommerce/',
   build: {
     outDir: '../../public/assets/modules/ecommerce',
@@ -16,17 +15,9 @@ export default defineConfig({
       fileName: (format) => `ecommerce-screens.[hash].js`,
     },
     rollupOptions: {
-      external: ['react', 'react-dom', '@tanstack/react-query', 'antd', '@ant-design/icons', 'lucide-react'],
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-          '@tanstack/react-query': 'ReactQuery',
-          antd: 'antd',
-          '@ant-design/icons': 'AntDesignIcons',
-          'lucide-react': 'LucideReact',
-        },
-      },
+      // Self-contained bundle: the host Dashboard does not expose React/antd
+      // as window globals, so every dependency is bundled here.
+      output: {},
     },
   },
   resolve: {

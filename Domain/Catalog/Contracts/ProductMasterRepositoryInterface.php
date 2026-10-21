@@ -21,4 +21,9 @@ interface ProductMasterRepositoryInterface
     public function getVariants(string $businessId, string $masterExternalId): array;
 
     public function getChannelProducts(string $businessId, string $masterExternalId): array;
+
+    /**
+     * @return array{categories: list<string>, tags: list<string>}
+     */
+    public function aggregateTaxonomies(string $businessId): array;
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PrestoWorld\Modules\Ecommerce;
 
 use Cycle\Database\DatabaseInterface;
+use App\Http\Routing\Contracts\RouteRegistryInterface;
 use PrestoWorld\Foundation\Admin\DashboardSubsystem;
 use PrestoWorld\Modules\Ecommerce\Contracts\AffiliateRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\AuthRepositoryInterface;
@@ -18,6 +19,7 @@ use PrestoWorld\Modules\Ecommerce\Contracts\ShippingDirectoryRepositoryInterface
 use PrestoWorld\Modules\Ecommerce\Contracts\SyncCursorRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\VpageRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\WebhookRepositoryInterface;
+use PrestoWorld\Modules\Ecommerce\Http\AdminProductsController;
 
 // Domain modules
 use PrestoWorld\Modules\Ecommerce\Domain\SharedKernel\Module as SharedKernelModule;
@@ -141,6 +143,8 @@ class Module extends WitalsModule
 
     public function boot(): void
     {
+        $this->registerAdminRoutes();
+
         DashboardSubsystem::register(
             $this->app,
             'products',
@@ -195,6 +199,37 @@ class Module extends WitalsModule
             60,
             'ecommerce',
         );
+    }
+
+    private function registerAdminRoutes(): void
+    {
+        if (!$this->app->has(RouteRegistryInterface::class)) {
+            return;
+        }
+
+        $cachePath = $this->app->storagePath('framework/cache/routes.php');
+        if (is_file($cachePath)) {
+            @unlink($cachePath);
+        }
+
+        $registry = $this->resolve($this->app, RouteRegistryInterface::class);
+        $action = [AdminProductsController::class, 'handle'];
+        $prefix = '/api/admin/products';
+
+        $routes = [
+            ['GET', $prefix],
+            ['POST', $prefix],
+            ['GET', $prefix . '/taxonomies'],
+            ['POST', $prefix . '/bulk'],
+            ['GET', $prefix . '/{id}'],
+            ['PUT', $prefix . '/{id}'],
+            ['PATCH', $prefix . '/{id}'],
+            ['DELETE', $prefix . '/{id}'],
+        ];
+
+        foreach ($routes as [$method, $path]) {
+            $registry->addRoute($method, $path, $action, RouteRegistryInterface::PRIORITY_MODULE);
+        }
     }
 
     public function getName(): string

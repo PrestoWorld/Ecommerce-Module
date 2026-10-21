@@ -74,13 +74,13 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
         }
         $now = time();
 
-        // Build JSON fields
-        $authors = isset($data['authors']) && is_array($data['authors']) ? json_encode($data['authors']) : ($data['authors'] ?? null);
-        $translators = isset($data['translators']) && is_array($data['translators']) ? json_encode($data['translators']) : ($data['translators'] ?? null);
-        $coverImages = isset($data['cover_images']) && is_array($data['cover_images']) ? json_encode($data['cover_images']) : ($data['cover_images'] ?? null);
-        $tags = isset($data['tags']) && is_array($data['tags']) ? json_encode($data['tags']) : ($data['tags'] ?? null);
-        $categories = isset($data['categories']) && is_array($data['categories']) ? json_encode($data['categories']) : ($data['categories'] ?? null);
-        $subjectCodes = isset($data['subject_codes']) && is_array($data['subject_codes']) ? json_encode($data['subject_codes']) : ($data['subject_codes'] ?? null);
+        // Build JSON fields (unicode unescaped so LIKE filters can match)
+        $authors = isset($data['authors']) && is_array($data['authors']) ? $this->encode($data['authors']) : ($data['authors'] ?? null);
+        $translators = isset($data['translators']) && is_array($data['translators']) ? $this->encode($data['translators']) : ($data['translators'] ?? null);
+        $coverImages = isset($data['cover_images']) && is_array($data['cover_images']) ? $this->encode($data['cover_images']) : ($data['cover_images'] ?? null);
+        $tags = isset($data['tags']) && is_array($data['tags']) ? $this->encode($data['tags']) : ($data['tags'] ?? null);
+        $categories = isset($data['categories']) && is_array($data['categories']) ? $this->encode($data['categories']) : ($data['categories'] ?? null);
+        $subjectCodes = isset($data['subject_codes']) && is_array($data['subject_codes']) ? $this->encode($data['subject_codes']) : ($data['subject_codes'] ?? null);
 
         $values = [
             'business_id' => $businessId,
@@ -189,6 +189,46 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
         return $this->rows($rows);
     }
 
+    /**
+     * Distinct categories/tags across all products of the business.
+     *
+     * @return array{categories: list<string>, tags: list<string>}
+     */
+    public function aggregateTaxonomies(string $businessId): array
+    {
+        $rows = $this->db->select('categories', 'tags')
+            ->from($this->table('product_masters'))
+            ->where('business_id', $businessId)
+            ->run()->fetchAll();
+
+        $categories = [];
+        $tags = [];
+
+        foreach ($rows as $row) {
+            $row = (array) $row;
+            foreach ($this->decodeJson($row['categories'] ?? null) as $category) {
+                if (is_string($category) && $category !== '') {
+                    $categories[$category] = true;
+                }
+            }
+            foreach ($this->decodeJson($row['tags'] ?? null) as $tag) {
+                if (is_string($tag) && $tag !== '') {
+                    $tags[$tag] = true;
+                }
+            }
+        }
+
+        $categories = array_keys($categories);
+        $tags = array_keys($tags);
+        natcasesort($categories);
+        natcasesort($tags);
+
+        return [
+            'categories' => array_values($categories),
+            'tags' => array_values($tags),
+        ];
+    }
+
     private function applyFilters(SelectQuery $query, string $businessId, array $filters): SelectQuery
     {
         $query->where('business_id', $businessId);
@@ -206,6 +246,23 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
 
         if (isset($filters['status']) && is_string($filters['status']) && $filters['status'] !== '') {
             $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['statuses']) && is_array($filters['statuses']) && $filters['statuses'] !== []) {
+            $statuses = array_values(array_filter($filters['statuses'], fn ($s) => is_string($s) && $s !== ''));
+            if ($statuses !== []) {
+                $query->where('status', 'IN', $statuses);
+            }
+        }
+
+        if (isset($filters['category']) && is_string($filters['category']) && $filters['category'] !== '') {
+            $needle = addcslashes($filters['category'], '%_\\');
+            $query->where('categories', 'LIKE', '%"'.$needle.'"%');
+        }
+
+        if (isset($filters['tag']) && is_string($filters['tag']) && $filters['tag'] !== '') {
+            $needle = addcslashes($filters['tag'], '%_\\');
+            $query->where('tags', 'LIKE', '%"'.$needle.'"%');
         }
 
         if (isset($filters['publisher']) && is_string($filters['publisher']) && $filters['publisher'] !== '') {

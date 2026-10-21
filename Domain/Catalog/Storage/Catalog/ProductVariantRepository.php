@@ -58,7 +58,7 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
 
     public function findByMaster(string $businessId, string $masterExternalId): array
     {
-        $masterRepo = new ProductMasterRepository($this->db, fn (string $name) => $this->prefix . $name);
+        $masterRepo = new ProductMasterRepository($this->db, $this->prefix);
         $master = $masterRepo->find($businessId, $masterExternalId);
         if (!$master) {
             return [];
@@ -75,7 +75,7 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
 
     public function findDefaultByMaster(string $businessId, string $masterExternalId): ?array
     {
-        $masterRepo = new ProductMasterRepository($this->db, fn (string $name) => $this->prefix . $name);
+        $masterRepo = new ProductMasterRepository($this->db, $this->prefix);
         $master = $masterRepo->find($businessId, $masterExternalId);
         if (!$master) {
             return null;
@@ -101,7 +101,7 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
         // Resolve master_id from master_external_id
         $masterId = $data['master_id'] ?? null;
         if (!$masterId && isset($data['master_external_id'])) {
-            $masterRepo = new ProductMasterRepository($this->db, fn (string $name) => $this->prefix . $name);
+            $masterRepo = new ProductMasterRepository($this->db, $this->prefix);
             $master = $masterRepo->find($businessId, $data['master_external_id']);
             $masterId = $master['id'] ?? null;
         }
@@ -286,7 +286,7 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
         $query->where('business_id', $businessId);
 
         if (isset($filters['master_external_id']) && is_string($filters['master_external_id']) && $filters['master_external_id'] !== '') {
-            $masterRepo = new ProductMasterRepository($this->db, fn (string $name) => $this->prefix . $name);
+            $masterRepo = new ProductMasterRepository($this->db, $this->prefix);
             $master = $masterRepo->find($businessId, $filters['master_external_id']);
             if ($master) {
                 $query->where('master_id', $master['id']);
