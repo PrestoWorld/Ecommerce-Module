@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { RichTextEditor } from '@presto/editor';
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
@@ -1017,11 +1018,12 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
           <div className="woo-metabox woo-main-editor">
             <h2>Mô tả</h2>
             <div className="woo-metabox-body">
-              <textarea
+              <RichTextEditor
                 value={form.description || ''}
+                onChange={(html) => patchForm({ description: html })}
                 placeholder="Mô tả chi tiết sản phẩm…"
-                onChange={(e) => patchForm({ description: e.target.value })}
-                style={{ minHeight: 260 }}
+                minHeight={260}
+                ariaLabel="Mô tả chi tiết sản phẩm"
               />
             </div>
           </div>

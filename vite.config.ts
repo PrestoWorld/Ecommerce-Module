@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -7,6 +8,13 @@ export default defineConfig({
   // still reference process.env.NODE_ENV at runtime in the browser.
   define: {
     'process.env.NODE_ENV': JSON.stringify('production'),
+  },
+  resolve: {
+    alias: {
+      // Shared React source reused across modules (built into this bundle).
+      '@presto/editor': fileURLToPath(new URL('../../shared/rich-text-editor/index.ts', import.meta.url)),
+    },
+    conditions: ['development', 'browser'],
   },
   base: '/assets/modules/ecommerce/',
   build: {
@@ -41,8 +49,5 @@ export default defineConfig({
         },
       },
     },
-  },
-  resolve: {
-    conditions: ['development', 'browser'],
   },
 });

@@ -11,7 +11,10 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "allowJs": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "@presto/editor": ["../../shared/rich-text-editor/index.ts"]
+    }
   },
   "include": ["src", "vite.config.ts"]
 }
