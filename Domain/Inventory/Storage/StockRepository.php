@@ -74,17 +74,17 @@ final class StockRepository extends AbstractRepository implements StockRepositor
 
     public function getAggregateStock(string $businessId, string $variantOptionExternalId): array
     {
-        $rows = $this->db->select(
-            'SUM(quantity_on_hand) as total_on_hand',
-            'SUM(quantity_reserved) as total_reserved',
-            'SUM(quantity_available) as total_available',
-            'COUNT(*) as location_count'
-        )->from($this->table('stock_items'))
-            ->where('business_id', $businessId)
-            ->where('variant_option_external_id', $variantOptionExternalId)
-            ->run()->fetch();
+        $rows = $this->db->query(
+            'SELECT COALESCE(SUM(quantity_on_hand), 0) AS total_on_hand,'
+            . ' COALESCE(SUM(quantity_reserved), 0) AS total_reserved,'
+            . ' COALESCE(SUM(quantity_available), 0) AS total_available,'
+            . ' COUNT(*) AS location_count'
+            . ' FROM ' . $this->table('stock_items')
+            . ' WHERE business_id = ? AND variant_option_external_id = ?',
+            [$businessId, $variantOptionExternalId],
+        )->fetch();
 
-        return $rows === false ? [
+        return $rows === false || $rows === null ? [
             'total_on_hand' => 0,
             'total_reserved' => 0,
             'total_available' => 0,

@@ -20,6 +20,7 @@ use PrestoWorld\Modules\Ecommerce\Contracts\SyncCursorRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\VpageRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\WebhookRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Http\AdminProductsController;
+use PrestoWorld\Modules\Ecommerce\Http\AdminStockController;
 
 // Domain modules
 use PrestoWorld\Modules\Ecommerce\Domain\SharedKernel\Module as SharedKernelModule;
@@ -229,6 +230,20 @@ class Module extends WitalsModule
 
         foreach ($routes as [$method, $path]) {
             $registry->addRoute($method, $path, $action, RouteRegistryInterface::PRIORITY_MODULE);
+        }
+
+        $stockAction = [AdminStockController::class, 'handle'];
+        $stockPrefix = '/api/admin/stock';
+
+        $stockRoutes = [
+            ['GET', $stockPrefix],
+            ['GET', $stockPrefix . '/driver'],
+            ['GET', $stockPrefix . '/movements'],
+            ['POST', $stockPrefix . '/adjust'],
+        ];
+
+        foreach ($stockRoutes as [$method, $path]) {
+            $registry->addRoute($method, $path, $stockAction, RouteRegistryInterface::PRIORITY_MODULE);
         }
     }
 

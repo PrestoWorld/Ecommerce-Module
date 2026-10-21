@@ -15,6 +15,16 @@ return [
             ?: (getenv('NHANH_SYNC_BUSINESS_ID') ?: ''),
     ],
 
+    /*
+     * Stock management driver:
+     *   auto      - prefer the Inventory module when loaded, else ecommerce
+     *   ecommerce - pw_stock_items balance + pw_stock_movements journal
+     *   inventory - pw_stock_items balance + warehouse documents (Inventory)
+     */
+    'stock' => [
+        'driver' => getenv('ECOMMERCE_STOCK_DRIVER') ?: 'auto',
+    ],
+
     'upstream' => [
         'version' => 'v3.0',
         'timeout' => 30,

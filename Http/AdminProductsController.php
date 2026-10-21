@@ -6,6 +6,7 @@ namespace PrestoWorld\Modules\Ecommerce\Http;
 
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Contracts\ProductMasterRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Contracts\ProductVariantRepositoryInterface;
+use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\StockDriverInterface;
 use Witals\Framework\Application;
 use Witals\Framework\Http\Request;
 use Witals\Framework\Http\Response;
@@ -30,6 +31,7 @@ final class AdminProductsController
         protected Application $app,
         protected ProductMasterRepositoryInterface $masters,
         protected ProductVariantRepositoryInterface $variants,
+        protected StockDriverInterface $stock,
     ) {
     }
 
@@ -392,6 +394,10 @@ final class AdminProductsController
                 $existing = $existingByExternal[$externalId];
                 $data['external_id'] = $externalId;
                 $data['created_at'] = (int) ($existing['created_at'] ?? time());
+                try {
+                    $this->stock->materialize($externalId);
+                } catch (\Throwable) {
+                }
             } elseif ($externalId !== '') {
                 $data['external_id'] = $externalId;
             }
@@ -405,6 +411,16 @@ final class AdminProductsController
 
             $saved = $this->variants->save($bid, $data);
             $seen[(string) $saved['external_id']] = true;
+
+            try {
+                $this->stock->syncVariant(
+                    (string) $saved['external_id'],
+                    (int) ($data['stock_on_hand'] ?? 0),
+                    (int) ($data['stock_reserved'] ?? 0),
+                    'Cập nhật từ danh mục sản phẩm',
+                );
+            } catch (\Throwable) {
+            }
         }
 
         // Delete variants that were removed from the payload
