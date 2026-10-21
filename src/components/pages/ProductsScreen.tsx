@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
@@ -142,128 +142,196 @@ const STATUS_LABELS: Record<string, string> = {
   archived: 'Thùng rác',
 };
 
-/* ── Styles (WooCommerce / wp-admin look) ──────────────────────── */
+/* ── Styles (Shopify admin / Polaris-inspired) ─────────────────── */
 
 const WOO_CSS = `
-.woo-wrap { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; color: #2c3338; font-size: 13px; }
+.woo-wrap { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; color: #303030; font-size: 14px; line-height: 1.5; }
 .woo-wrap * { box-sizing: border-box; }
-.woo-h1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 16px; }
-.woo-h1 h1 { font-size: 23px; font-weight: 400; margin: 0; line-height: 1.3; }
-.woo-views { margin: 0 0 8px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 2px 4px; font-size: 13px; }
-.woo-views li a { display: inline-block; padding: 2px 6px; text-decoration: none; color: #2271b1; border-radius: 3px; }
-.woo-views li a:hover { color: #0a4b78; background: #f0f6fc; }
-.woo-views li a.current { font-weight: 600; color: #1d2327; background: transparent; cursor: default; }
-.woo-views .count { opacity: 0.7; margin-left: 2px; }
-.woo-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #c3c4c7; box-shadow: 0 1px 1px rgba(0,0,0,.04); }
-.woo-table th { text-align: left; font-size: 14px; font-weight: 600; color: #2c3338; padding: 8px 10px; border-bottom: 1px solid #c3c4c7; white-space: nowrap; }
-.woo-table td { padding: 10px; border-bottom: 1px solid #f0f0f1; vertical-align: middle; font-size: 13px; }
-.woo-table tbody tr:hover { background: #f6f7f7; }
-.woo-table .check-column { width: 34px; padding: 8px 0 8px 10px; }
-.woo-thumb { width: 40px; height: 40px; border-radius: 3px; background: #f0f0f1; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-.woo-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.woo-thumb .dashicons { width: 20px; height: 20px; fill: #8c8f94; }
-.woo-title-cell { display: flex; gap: 10px; align-items: flex-start; min-width: 260px; }
-.woo-row-title { font-size: 14px; font-weight: 600; color: #2271b1; text-decoration: none; cursor: pointer; line-height: 1.3; display: inline-block; }
-.woo-row-title:hover { color: #0a4b78; }
-.woo-row-id { color: #8c8f94; font-size: 12px; margin-top: 2px; }
-.woo-row-actions { font-size: 12px; color: #8c8f94; margin-top: 4px; visibility: hidden; }
-.woo-table tbody tr:hover .woo-row-actions { visibility: visible; }
-.woo-row-actions button { background: none; border: 0; padding: 0; color: #2271b1; font-size: 12px; cursor: pointer; font-family: inherit; }
-.woo-row-actions button:hover { color: #0a4b78; }
-.woo-row-actions .sep { margin: 0 4px; color: #c3c4c7; }
-.woo-row-actions button.danger { color: #b32d2e; }
-.woo-badge { display: inline-block; padding: 1px 8px 2px; border-radius: 3px; font-size: 12px; font-weight: 500; line-height: 1.6; white-space: nowrap; }
-.woo-badge.published, .woo-badge.instock { background: #edfaef; color: #008a20; border: 1px solid #008a2033; }
-.woo-badge.draft { background: #fcf9e8; color: #996800; border: 1px solid #99680033; }
-.woo-badge.trash { background: #f0f0f1; color: #50575e; border: 1px solid #50575e33; }
-.woo-badge.outofstock { background: #fcf0f1; color: #b32d2e; border: 1px solid #b32d2e33; }
-.woo-badge.lowstock { background: #fcf9e8; color: #996800; border: 1px solid #99680033; }
-.woo-price .sale { color: #b32d2e; font-weight: 600; }
-.woo-price .regular { color: #8c8f94; text-decoration: line-through; margin-left: 4px; font-size: 12px; }
-.woo-cat-list { max-width: 200px; }
-.woo-cat-list button { background: none; border: 0; padding: 0; color: #2271b1; font-size: 13px; cursor: pointer; font-family: inherit; }
-.woo-cat-list button:hover { color: #0a4b78; }
-.woo-tags { color: #8c8f94; font-size: 12px; max-width: 160px; }
-.woo-tablenav { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 16px 0 8px; }
-.woo-tablenav .bulkactions, .woo-tablenav .actions, .woo-tablenav .search-box { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.woo-tablenav label { font-size: 13px; }
-.woo-empty { text-align: center; padding: 48px 16px; color: #8c8f94; }
-.woo-empty h2 { font-size: 23px; font-weight: 400; color: #1d2327; margin: 0 0 8px; }
-.woo-pagination { display: flex; justify-content: space-between; align-items: center; margin: 16px 0 32px; color: #646970; font-size: 13px; }
-.woo-pagination .pages { display: flex; gap: 4px; }
-.woo-notice { padding: 10px 14px; border-radius: 4px; margin: 0 0 16px; font-size: 13px; border: 1px solid; }
-.woo-notice.success { background: #edfaef; border-color: #008a2033; color: #006d21; }
-.woo-notice.error { background: #fcf0f1; border-color: #b32d2e33; color: #8a1f1f; }
-.woo-notice.info { background: #f0f6fc; border-color: #2271b133; color: #0a4b78; }
 
-/* Forms */
+/* Page header */
+.woo-h1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 16px; }
+.woo-h1 h1 { font-size: 20px; font-weight: 650; margin: 0; line-height: 1.4; color: #1a1a1a; letter-spacing: -0.01em; }
+
+/* View tabs (Polaris Tabs) */
+.woo-views { margin: 0 0 12px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px; font-size: 14px; }
+.woo-views li a { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; text-decoration: none; color: #4a4a4a; border-radius: 8px; font-weight: 550; }
+.woo-views li a:hover { background: rgba(0,0,0,0.05); color: #1a1a1a; }
+.woo-views li a.current { background: rgba(0,0,0,0.08); color: #303030; font-weight: 650; cursor: default; }
+.woo-views li a.current:hover { background: rgba(0,0,0,0.08); }
+.woo-views .count { opacity: 0.65; font-weight: 450; }
+
+/* Cards (Polaris LegacyCard) */
+.woo-metabox { background: #fff; border: 1px solid #e3e3e3; box-shadow: 0 1px 0 rgba(26,26,26,0.07); border-radius: 12px; }
+.woo-metabox > h2, .woo-metabox > h3 { font-size: 14px; font-weight: 650; margin: 0; padding: 12px 16px; border-bottom: 1px solid #ebebeb; color: #303030; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.woo-metabox-body { padding: 16px; }
+
+/* Toolbar + table card */
+.woo-tablecard { background: #fff; border: 1px solid #e3e3e3; box-shadow: 0 1px 0 rgba(26,26,26,0.07); border-radius: 12px; overflow: hidden; }
+.woo-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid #ebebeb; }
+.woo-search { position: relative; flex: 1 1 240px; max-width: 380px; min-width: 180px; }
+.woo-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #616161; pointer-events: none; }
+.woo-search input { padding-left: 32px !important; }
+.woo-wrap .woo-toolbar > select { width: auto; min-width: 150px; flex: 0 0 auto; }
+.woo-bulkbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; padding-top: 4px; font-size: 13px; color: #616161; }
+.woo-bulkbar .sel-count { font-weight: 650; color: #303030; }
+.woo-wrap .woo-bulkbar select { width: auto; min-width: 180px; }
+
+/* Table (Polaris IndexTable) */
+.woo-table { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; }
+.woo-table th { text-align: left; font-size: 13px; font-weight: 550; color: #616161; padding: 10px 16px; border-bottom: 1px solid #e3e3e3; white-space: nowrap; background: #fff; }
+.woo-table td { padding: 12px 16px; border-bottom: 1px solid #ebebeb; vertical-align: middle; font-size: 14px; color: #303030; }
+.woo-table tbody tr:last-child td { border-bottom: 0; }
+.woo-table tbody tr:hover td { background: #f7f7f7; }
+.woo-table .check-column { width: 44px; padding: 12px 0 12px 16px; }
+.woo-wrap input[type=checkbox] { accent-color: #1a1a1a; width: 16px; height: 16px; margin: 0; cursor: pointer; }
+
+.woo-thumb { width: 40px; height: 40px; border-radius: 8px; background: #f1f1f1; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+.woo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.woo-thumb .dashicons { width: 20px; height: 20px; fill: #8a8a8a; }
+.woo-title-cell { display: flex; gap: 12px; align-items: flex-start; min-width: 260px; }
+.woo-row-title { font-size: 14px; font-weight: 550; color: #303030; text-decoration: none; cursor: pointer; line-height: 1.35; display: inline-block; }
+.woo-row-title:hover { color: #005bd3; text-decoration: underline; }
+.woo-row-id { color: #616161; font-size: 12px; margin-top: 2px; }
+.woo-row-actions { font-size: 13px; color: #616161; margin-top: 4px; visibility: hidden; }
+.woo-table tbody tr:hover .woo-row-actions, .woo-table tbody tr:focus-within .woo-row-actions { visibility: visible; }
+.woo-row-actions button { background: none; border: 0; padding: 0; color: #005bd3; font-size: 13px; cursor: pointer; font-family: inherit; }
+.woo-row-actions button:hover { color: #004299; text-decoration: underline; }
+.woo-row-actions .sep { margin: 0 6px; color: #d4d4d4; }
+.woo-row-actions button.danger { color: #c70a24; }
+
+/* Badges (Polaris Badge) */
+.woo-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 8px; font-size: 12px; font-weight: 550; line-height: 1.6; white-space: nowrap; }
+.woo-badge.published, .woo-badge.instock { background: #b1fec0; color: #014b40; }
+.woo-badge.draft { background: rgba(0,0,0,0.06); color: #616161; }
+.woo-badge.trash { background: #ffeb78; color: #4f4700; }
+.woo-badge.outofstock { background: #fed1d7; color: #8e0b21; }
+.woo-badge.lowstock { background: #ffd6a4; color: #5e4200; }
+
+/* Stock text */
+.woo-stock { font-size: 13px; font-weight: 550; white-space: nowrap; }
+.woo-stock.instock { color: #047b5d; }
+.woo-stock.lowstock { color: #5e4200; }
+.woo-stock.outofstock { color: #c70a24; }
+
+.woo-price .sale { color: #303030; font-weight: 550; }
+.woo-price .regular { color: #616161; text-decoration: line-through; margin-left: 6px; font-size: 13px; font-weight: 450; }
+.woo-cat-list { max-width: 200px; }
+.woo-cat-list button { background: none; border: 0; padding: 0; color: #005bd3; font-size: 14px; cursor: pointer; font-family: inherit; text-align: left; }
+.woo-cat-list button:hover { color: #004299; text-decoration: underline; }
+.woo-tags { color: #616161; font-size: 13px; max-width: 160px; }
+.woo-date { color: #616161; font-size: 13px; white-space: nowrap; }
+
+.woo-empty { text-align: center; padding: 56px 24px; color: #616161; }
+.woo-empty h2 { font-size: 16px; font-weight: 650; color: #303030; margin: 0 0 6px; }
+.woo-empty p { font-size: 14px; margin: 0 0 16px; }
+
+.woo-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 12px 0 40px; color: #616161; font-size: 13px; }
+.woo-pagination .pages { display: flex; gap: 6px; align-items: center; }
+.woo-pagination .button { min-width: 32px; padding: 0 10px; font-size: 16px; line-height: 1; }
+
+/* Notices (Polaris Banner) */
+.woo-notice { padding: 12px 16px; border-radius: 12px; margin: 0 0 16px; font-size: 14px; line-height: 1.5; }
+.woo-notice.success { background: #cdfed4; color: #014b40; }
+.woo-notice.error { background: #fee8eb; color: #8e0b21; }
+.woo-notice.info { background: #eaf4ff; color: #003a5a; }
+
+/* Forms (Polaris TextField / Select) */
 .woo-wrap input[type=text], .woo-wrap input[type=number], .woo-wrap input[type=url], .woo-wrap input[type=search],
 .woo-wrap textarea, .woo-wrap select {
-  border: 1px solid #8c8f94; border-radius: 4px; padding: 4px 8px; font-size: 13px; min-height: 30px;
-  background: #fff; color: #2c3338; font-family: inherit; width: 100%;
+  border: 1px solid #8a8a8a; border-top-color: #898f94; border-radius: 8px; padding: 6px 12px; font-size: 14px; min-height: 32px;
+  background: #fdfdfd; color: #303030; font-family: inherit; width: 100%; transition: box-shadow 120ms ease, border-color 120ms ease;
 }
-.woo-wrap textarea { min-height: 80px; line-height: 1.5; }
-.woo-wrap input:focus, .woo-wrap textarea:focus, .woo-wrap select:focus { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; outline: none; }
-.woo-wrap .button {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  background: #f6f7f7; border: 1px solid #2271b1; border-radius: 3px; color: #2271b1;
-  font-size: 13px; font-weight: 500; padding: 0 12px; min-height: 30px; cursor: pointer;
+.woo-wrap textarea { min-height: 84px; line-height: 1.55; resize: vertical; }
+.woo-wrap select { cursor: pointer; }
+.woo-wrap input:focus, .woo-wrap textarea:focus, .woo-wrap select:focus { border-color: #1a1a1a; box-shadow: 0 0 0 1px #005bd3; outline: none; }
+.woo-wrap input::placeholder, .woo-wrap textarea::placeholder { color: #8a8a8a; }
+.woo-wrap input:disabled, .woo-wrap select:disabled, .woo-wrap textarea:disabled { background: #f1f1f1; color: #b5b5b5; border-color: #ebebeb; }
+
+.woo-wrap .button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px;
+  background: #fff; border: none; border-radius: 8px; color: #303030; font-size: 14px; font-weight: 550; cursor: pointer;
   font-family: inherit; white-space: nowrap; text-decoration: none;
-}
-.woo-wrap .button:hover { background: #f0f6fc; border-color: #0a4b78; color: #0a4b78; }
-.woo-wrap .button-primary { background: #2271b1; border-color: #2271b1; color: #fff; }
-.woo-wrap .button-primary:hover { background: #135e96; border-color: #135e96; color: #fff; }
-.woo-wrap .button-link-delete { background: none; border: 0; color: #b32d2e; cursor: pointer; font-size: 13px; font-family: inherit; padding: 0; text-decoration: underline; }
-.woo-wrap .button-link-delete:hover { color: #8a1f1f; }
-.woo-wrap .description { color: #646970; font-size: 12px; margin: 4px 0 0; }
-.woo-form-row { margin-bottom: 14px; }
-.woo-form-row label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; }
+  box-shadow: 0 -1px 0 #b5b5b5 inset, 0 0 0 1px rgba(0,0,0,0.1), 0 1px 0 #fff inset; }
+.woo-wrap .button:hover { background: #fafafa; box-shadow: 0 -1px 0 #ccc inset, 0 0 0 1px rgba(0,0,0,0.15), 0 1px 0 #fff inset; }
+.woo-wrap .button:active { background: #f1f1f1; }
+.woo-wrap .button:disabled { background: #f1f1f1; color: #b5b5b5; box-shadow: 0 0 0 1px #ebebeb inset; cursor: not-allowed; }
+.woo-wrap .button-primary { background: #1a1a1a; color: #fff; box-shadow: 0 1px 0 rgba(0,0,0,0.2); }
+.woo-wrap .button-primary:hover { background: #303030; color: #fff; box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+.woo-wrap .button-primary:active { background: #4a4a4a; }
+.woo-wrap .button-primary:disabled { background: rgba(0,0,0,0.17); color: #fff; box-shadow: none; }
+.woo-wrap .button-link-delete { background: none; border: 0; color: #c70a24; cursor: pointer; font-size: 14px; font-family: inherit; padding: 0; text-decoration: none; font-weight: 550; }
+.woo-wrap .button-link-delete:hover { color: #8e0b21; text-decoration: underline; }
+.woo-wrap .button-link-delete:disabled { color: #b5b5b5; cursor: not-allowed; text-decoration: none; }
+.woo-wrap .description { color: #616161; font-size: 13px; margin: 4px 0 0; line-height: 1.5; }
+.woo-form-row { margin-bottom: 16px; }
+.woo-form-row:last-child { margin-bottom: 0; }
+.woo-form-row label { display: block; font-weight: 550; margin-bottom: 6px; font-size: 13px; color: #303030; }
 .woo-form-inline { display: flex; gap: 8px; align-items: center; }
 .woo-form-inline > * { width: auto; }
-.woo-required { color: #b32d2e; }
+.woo-form-inline > input { flex: 1 1 auto; width: auto; min-width: 0; }
+.woo-required { color: #c70a24; }
 
 /* Editor layout */
-.woo-editor { display: flex; gap: 16px; align-items: flex-start; max-width: 1400px; padding-bottom: 40px; flex-wrap: wrap; }
+.woo-editor { display: flex; gap: 16px; align-items: flex-start; max-width: 1400px; padding-bottom: 48px; flex-wrap: wrap; }
 .woo-editor-left { flex: 1 1 640px; min-width: 0; }
-.woo-editor-right { flex: 0 0 300px; display: flex; flex-direction: column; gap: 16px; }
-.woo-metabox { background: #fff; border: 1px solid #c3c4c7; box-shadow: 0 1px 1px rgba(0,0,0,.04); border-radius: 4px; }
-.woo-metabox > h2, .woo-metabox > h3 { font-size: 14px; font-weight: 600; margin: 0; padding: 10px 14px; border-bottom: 1px solid #c3c4c7; color: #1d2327; display: flex; justify-content: space-between; align-items: center; }
-.woo-metabox-body { padding: 14px; }
-.woo-title-input { font-size: 23px !important; font-weight: 400; padding: 8px 12px !important; min-height: 44px !important; }
-.woo-slug-line { font-size: 13px; color: #646970; margin: 8px 2px 16px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.woo-slug-line .slug { color: #2271b1; background: #f0f6fc; padding: 2px 6px; border-radius: 3px; }
-.woo-main-editor textarea { min-height: 320px; padding: 12px; font-size: 14px; border-radius: 4px 4px 0 0; }
-.woo-short-desc textarea { min-height: 110px; }
-.woo-publishbox .woo-form-row:last-child { margin-bottom: 0; }
-.woo-publish-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-.woo-publish-actions .button-primary { width: 100%; min-height: 34px; font-size: 14px; }
-.woo-cat-checklist { list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto; border: 1px solid #c3c4c7; border-radius: 4px; }
-.woo-cat-checklist li { border-bottom: 1px solid #f0f0f1; }
-.woo-cat-checklist li:last-child { border-bottom: 0; }
-.woo-cat-checklist label { display: flex; gap: 8px; align-items: center; padding: 6px 10px; cursor: pointer; font-weight: 400 !important; margin: 0 !important; }
-.woo-cat-checklist label:hover { background: #f6f7f7; }
-.woo-tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.woo-tag-chip { display: inline-flex; align-items: center; gap: 4px; background: #f0f6fc; border: 1px solid #2271b133; color: #2271b1; border-radius: 3px; padding: 2px 6px; font-size: 12px; }
-.woo-tag-chip button { background: none; border: 0; color: #2271b1; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
-.woo-img-preview { margin: 8px 0; display: flex; align-items: center; gap: 10px; }
-.woo-img-preview img { width: 80px; height: 80px; object-fit: cover; border: 1px solid #c3c4c7; border-radius: 3px; background: #f0f0f1; }
+.woo-editor-left > .woo-metabox { margin-bottom: 16px; }
+.woo-editor-right { flex: 0 0 320px; display: flex; flex-direction: column; gap: 16px; }
+.woo-title-area { padding: 4px 0 0; margin-bottom: 20px; }
+.woo-title-input { font-size: 22px !important; font-weight: 650; letter-spacing: -0.01em; color: #1a1a1a !important;
+  background: transparent !important; border: 1px solid transparent !important; border-radius: 8px !important;
+  padding: 6px 8px !important; min-height: 44px !important; }
+.woo-title-input::placeholder { color: #8a8a8a; font-weight: 450; }
+.woo-title-input:hover { background: #f7f7f7 !important; }
+.woo-title-input:focus { background: #fff !important; border-color: #8a8a8a !important; box-shadow: 0 0 0 1px #005bd3 !important; }
+.woo-slug-line { font-size: 13px; color: #616161; margin: 6px 8px 0; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.woo-slug-line .slug { color: #005bd3; background: rgba(0,91,211,0.08); padding: 2px 8px; border-radius: 6px; }
+.woo-short-desc textarea { min-height: 96px; }
 
-/* Product data metabox */
-.woo-product-data { display: flex; min-height: 340px; }
-.woo-pd-tabs { flex: 0 0 160px; background: #f6f7f7; border-right: 1px solid #c3c4c7; border-radius: 4px 0 0 4px; padding: 8px 0; }
-.woo-pd-tab { display: block; width: 100%; text-align: left; background: none; border: 0; border-left: 3px solid transparent; padding: 8px 14px; font-size: 13px; color: #2271b1; cursor: pointer; font-family: inherit; }
-.woo-pd-tab:hover { color: #0a4b78; background: #f0f6fc; }
-.woo-pd-tab.active { background: #fff; border-left-color: #2271b1; color: #1d2327; font-weight: 600; }
-.woo-pd-panel { flex: 1; padding: 16px; min-width: 0; }
-.woo-pd-type { font-weight: 600; margin: 0 0 12px; font-size: 13px; }
-.woo-price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 640px) {
+/* Sticky action bar (Shopify editor top bar) */
+.woo-topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; padding: 8px 0 12px; margin-bottom: 4px; background: rgba(248,250,252,0.92); backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid #e3e3e3; }
+.woo-topbar-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.woo-back { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 4px 8px 4px 4px;
+  color: #005bd3; font-size: 14px; font-weight: 550; font-family: inherit; cursor: pointer; border-radius: 8px; }
+.woo-back:hover { background: rgba(0,0,0,0.05); color: #004299; }
+.woo-back svg { width: 16px; height: 16px; }
+.woo-topbar-sep { color: #d4d4d4; }
+.woo-topbar-title { font-size: 14px; font-weight: 650; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.woo-topbar-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.woo-topbar-right .button { min-width: 76px; }
+
+/* Status card */
+.woo-publish-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; align-items: flex-start; }
+.woo-publish-actions .button { width: 100%; }
+
+/* Organization */
+.woo-cat-checklist { list-style: none; margin: 0; padding: 0; max-height: 200px; overflow-y: auto; border: 1px solid #e3e3e3; border-radius: 8px; }
+.woo-cat-checklist li { border-bottom: 1px solid #ebebeb; }
+.woo-cat-checklist li:last-child { border-bottom: 0; }
+.woo-cat-checklist label { display: flex; gap: 8px; align-items: center; padding: 7px 10px; cursor: pointer; font-weight: 450 !important; margin: 0 !important; font-size: 13px !important; }
+.woo-cat-checklist label:hover { background: #f7f7f7; }
+.woo-tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.woo-tag-chip { display: inline-flex; align-items: center; gap: 6px; background: #f1f1f1; border: 1px solid #e3e3e3; color: #303030; border-radius: 8px; padding: 3px 8px; font-size: 13px; font-weight: 550; }
+.woo-tag-chip button { background: none; border: 0; color: #616161; cursor: pointer; font-size: 15px; line-height: 1; padding: 0; }
+.woo-tag-chip button:hover { color: #c70a24; }
+.woo-img-preview { margin: 4px 0 12px; display: flex; align-items: center; gap: 12px; }
+.woo-img-preview img { width: 72px; height: 72px; object-fit: cover; border: 1px solid #e3e3e3; border-radius: 8px; background: #f1f1f1; }
+.woo-divider { border: 0; border-top: 1px solid #ebebeb; margin: 16px 0; }
+.woo-field-label { display: block; font-weight: 550; margin-bottom: 6px; font-size: 13px; color: #303030; }
+
+/* Field grids */
+.woo-price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.woo-profit { font-size: 13px; color: #047b5d; font-weight: 550; margin: 14px 0 0; }
+
+@media (max-width: 900px) {
   .woo-editor-right { flex: 1 1 100%; }
   .woo-price-grid { grid-template-columns: 1fr; }
-  .woo-product-data { flex-direction: column; }
-  .woo-pd-tabs { flex: none; display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid #c3c4c7; border-radius: 4px 4px 0 0; padding: 0; }
-  .woo-pd-tab { width: auto; white-space: nowrap; border-left: 0; border-bottom: 3px solid transparent; }
-  .woo-pd-tab.active { border-bottom-color: #2271b1; }
+}
+@media (max-width: 640px) {
+  .woo-h1 { flex-direction: column; align-items: flex-start; }
+  .woo-toolbar { flex-direction: column; align-items: stretch; }
+  .woo-search { max-width: none; }
+  .woo-wrap .woo-toolbar > select { width: 100%; }
 }
 `;
 
@@ -305,7 +373,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
   // Editor state
   const [form, setForm] = useState<ProductDetail | null>(null);
   const [saving, setSaving] = useState(false);
-  const [pdTab, setPdTab] = useState('general');
+  const statusAtLoad = useRef<string | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [slugEditing, setSlugEditing] = useState(false);
@@ -418,6 +486,25 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
     }
   };
 
+  const deleteFromEditor = async () => {
+    if (!editingId) return;
+    if (!window.confirm('Xóa vĩnh viễn sản phẩm này? Hành động này không thể hoàn tác.')) return;
+    setSaving(true);
+    try {
+      await api(`${API}/${editingId}`, { method: 'DELETE' });
+      setNotice({ kind: 'success', text: 'Đã xóa sản phẩm' });
+      setMode('list');
+      setForm(null);
+      setEditingId(null);
+      statusAtLoad.current = null;
+      await loadList();
+    } catch (err) {
+      setNotice({ kind: 'error', text: err instanceof Error ? err.message : 'Thao tác thất bại' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const openEditor = async (id: string | null) => {
     setNotice(null);
     if (id === null) {
@@ -440,6 +527,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
         publishedAt: null, createdAt: 0, updatedAt: 0,
       });
       setEditingId(null);
+      statusAtLoad.current = 'draft';
       setMode('edit');
       return;
     }
@@ -447,6 +535,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
       const detail = await api<ProductDetail>(`${API}/${id}`);
       setForm(detail);
       setEditingId(id);
+      statusAtLoad.current = detail.status;
       setMode('edit');
     } catch (err) {
       setNotice({ kind: 'error', text: err instanceof Error ? err.message : 'Không mở được sản phẩm' });
@@ -472,7 +561,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
     });
   };
 
-  const saveProduct = async (opts: { trash?: boolean; draft?: boolean; publish?: boolean } = {}) => {
+  const saveProduct = async (opts: { trash?: boolean; draft?: boolean } = {}) => {
     if (!form) return;
     if (!form.title.trim()) {
       setNotice({ kind: 'error', text: 'Vui lòng nhập tiêu đề sản phẩm' });
@@ -481,10 +570,12 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
     setSaving(true);
     try {
       const v = form.variants[0];
+      const wasArchived = form.status === 'archived';
+      const prevStatus = statusAtLoad.current;
       const payload = {
         title: form.title.trim(),
         slug: form.slug || undefined,
-        status: opts.trash ? 'archived' : opts.draft ? 'draft' : opts.publish ? 'active' : form.status,
+        status: opts.trash ? 'archived' : opts.draft ? 'draft' : form.status,
         description: form.description || null,
         shortDescription: form.shortDescription || null,
         coverImage: form.coverImage || null,
@@ -530,26 +621,36 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
         }],
       };
 
-      if (editingId) {
-        await api(`${API}/${editingId}`, { method: 'PUT', body: JSON.stringify(payload) });
-      } else {
-        await api(`${API}`, { method: 'POST', body: JSON.stringify(payload) });
-      }
+      const saved = editingId
+        ? await api<ProductDetail>(`${API}/${editingId}`, { method: 'PUT', body: JSON.stringify(payload) })
+        : await api<ProductDetail>(`${API}`, { method: 'POST', body: JSON.stringify(payload) });
 
       await loadTaxonomies();
-      setMode('list');
-      setForm(null);
-      setEditingId(null);
-      setNotice({
-        kind: 'success',
-        text: opts.trash
-          ? 'Đã chuyển sản phẩm vào thùng rác'
-          : opts.draft
-            ? 'Đã lưu bản nháp'
-            : opts.publish && !editingId
-              ? 'Đã xuất bản sản phẩm'
-              : 'Đã cập nhật sản phẩm',
-      });
+
+      if (opts.trash) {
+        setNotice({ kind: 'success', text: 'Đã chuyển sản phẩm vào thùng rác' });
+        setMode('list');
+        setForm(null);
+        setEditingId(null);
+        statusAtLoad.current = null;
+        await loadList();
+        return;
+      }
+
+      // Shopify-style: stay in the editor after saving.
+      setForm(saved);
+      setEditingId(saved.id);
+      statusAtLoad.current = saved.status;
+      const text = opts.draft && wasArchived
+        ? 'Đã khôi phục sản phẩm'
+        : saved.status === 'active' && prevStatus !== 'active'
+          ? 'Đã xuất bản sản phẩm'
+          : saved.status === 'draft' && prevStatus === 'active'
+            ? 'Đã chuyển sản phẩm về nháp'
+            : !editingId && saved.status === 'draft'
+              ? 'Đã lưu bản nháp'
+              : 'Đã lưu sản phẩm';
+      setNotice({ kind: 'success', text });
       await loadList();
     } catch (err) {
       setNotice({ kind: 'error', text: err instanceof Error ? err.message : 'Lưu thất bại' });
@@ -594,7 +695,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
         <div className="woo-h1">
           <h1>Sản phẩm</h1>
           <button type="button" className="button button-primary" onClick={() => void openEditor(null)}>
-            Thêm sản phẩm mới
+            Thêm sản phẩm
           </button>
         </div>
 
@@ -616,56 +717,64 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
           ))}
         </ul>
 
-        <div className="woo-tablenav">
-          <div className="bulkactions">
-            <label>
-              Hành động mass{' '}
-              <select value={bulkAction} onChange={(e) => setBulkAction(e.target.value)} style={{ width: 'auto' }}>
-                <option value="">Hành động mass</option>
-                <option value="trash">Chuyển vào thùng rác</option>
-                <option value="restore">Khôi phục từ thùng rác</option>
-                <option value="publish">Đăng</option>
-                <option value="draft">Chuyển về bản nháp</option>
-                <option value="delete">Xóa vĩnh viễn</option>
-              </select>
-            </label>
-            <button type="button" className="button" onClick={() => void applyBulk()}>Áp dụng</button>
-          </div>
+        <div className="woo-tablecard">
+          <div className="woo-toolbar">
+            <div className="woo-search">
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="9" cy="9" r="5.5" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M13.2 13.2 17 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+              <form onSubmit={(e) => { e.preventDefault(); setList((s) => ({ ...s, page: 1 })); void loadList(); }}>
+                <input
+                  type="search"
+                  value={search}
+                  placeholder="Tìm sản phẩm…"
+                  aria-label="Tìm sản phẩm"
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </form>
+            </div>
 
-          <div className="actions">
-            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ width: 'auto' }}>
+            <select
+              value={categoryFilter}
+              aria-label="Lọc theo danh mục"
+              onChange={(e) => { setCategoryFilter(e.target.value); setList((s) => ({ ...s, page: 1 })); }}
+            >
               <option value="">Tất cả danh mục</option>
               {taxonomies.categories.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
-            <select value={orderby} onChange={(e) => setOrderby(e.target.value)} style={{ width: 'auto' }}>
+            <select value={orderby} aria-label="Sắp xếp" onChange={(e) => setOrderby(e.target.value)}>
               <option value="date">Mới nhất</option>
               <option value="title">Tên (A → Z)</option>
               <option value="sku">SKU</option>
             </select>
-            <button type="button" className="button" onClick={() => void loadList()}>Lọc</button>
+
+            {selected.size > 0 && (
+              <div className="woo-bulkbar">
+                <span className="sel-count">{selected.size} sản phẩm đã chọn</span>
+                <select
+                  value={bulkAction}
+                  aria-label="Hành động hàng loạt"
+                  onChange={(e) => setBulkAction(e.target.value)}
+                >
+                  <option value="">Chọn hành động…</option>
+                  <option value="trash">Chuyển vào thùng rác</option>
+                  <option value="restore">Khôi phục từ thùng rác</option>
+                  <option value="publish">Xuất bản</option>
+                  <option value="draft">Chuyển về bản nháp</option>
+                  <option value="delete">Xóa vĩnh viễn</option>
+                </select>
+                <button type="button" className="button" onClick={() => void applyBulk()}>Áp dụng</button>
+                <button type="button" className="button" onClick={() => { setSelected(new Set()); setBulkAction(''); }}>
+                  Bỏ chọn
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="search-box">
-            <form
-              onSubmit={(e) => { e.preventDefault(); setList((s) => ({ ...s, page: 1 })); void loadList(); }}
-              style={{ display: 'flex', gap: 6, alignItems: 'center' }}
-            >
-              <input
-                type="search"
-                value={search}
-                placeholder="Tìm sản phẩm"
-                onChange={(e) => setSearch(e.target.value)}
-                style={{ width: 200 }}
-              />
-              <button type="submit" className="button">Tìm sản phẩm</button>
-            </form>
-          </div>
-        </div>
-
-        {list.items.length === 0 && !loading ? (
-          <div className="woo-metabox">
+          {list.items.length === 0 && !loading ? (
             <div className="woo-empty">
               <h2>Không tìm thấy sản phẩm</h2>
               <p>
@@ -676,11 +785,10 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
                     : 'Bắt đầu bằng cách thêm sản phẩm đầu tiên.'}
               </p>
               <button type="button" className="button button-primary" onClick={() => void openEditor(null)}>
-                Thêm sản phẩm mới
+                Thêm sản phẩm
               </button>
             </div>
-          </div>
-        ) : (
+          ) : (
           <table className="woo-table">
             <thead>
               <tr>
@@ -692,8 +800,9 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
                   />
                 </th>
                 <th colSpan={2}>Tên</th>
+                <th>Trạng thái</th>
                 <th>SKU</th>
-                <th>Tồn kho</th>
+                <th>Kho</th>
                 <th>Giá</th>
                 <th>Danh mục</th>
                 <th>Thẻ</th>
@@ -741,16 +850,16 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
                         </div>
                         <div className="woo-row-id">ID: {item.id}</div>
                       </div>
-                      <div style={{ marginLeft: 'auto' }}>
-                        <span className={`woo-badge ${item.status === 'active' ? 'published' : item.status}`}>
-                          {STATUS_LABELS[item.status] ?? item.status}
-                        </span>
-                      </div>
                     </div>
+                  </td>
+                  <td>
+                    <span className={`woo-badge ${item.status === 'active' ? 'published' : item.status}`}>
+                      {STATUS_LABELS[item.status] ?? item.status}
+                    </span>
                   </td>
                   <td>{item.sku || '—'}</td>
                   <td>
-                    <span className={`woo-badge ${item.stock.status}`}>
+                    <span className={`woo-stock ${item.stock.status}`}>
                       {STOCK_LABELS[item.stock.status] ?? item.stock.status}
                       {item.stock.status !== 'outofstock' && ` (${item.stock.available})`}
                     </span>
@@ -780,33 +889,40 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
                   <td className="woo-tags">
                     {item.tags.length === 0 ? '—' : item.tags.join(', ')}
                   </td>
-                  <td>
+                  <td className="woo-date">
                     {formatDate(view === 'published' ? item.publishedAt : item.createdAt)}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        )}
+          )}
+        </div>
 
         <div className="woo-pagination">
           <span>{loading ? 'Đang tải…' : `${list.total} sản phẩm`}</span>
           {list.total > list.perPage && (
             <div className="pages">
               <button
-                type="button" className="button" disabled={list.page <= 1}
+                type="button"
+                className="button"
+                aria-label="Trang trước"
+                disabled={list.page <= 1}
                 onClick={() => changePage(list.page - 1)}
               >
-                « Trước
+                ‹
               </button>
-              <span className="button" style={{ cursor: 'default' }}>
+              <span>
                 {list.page} / {Math.max(1, Math.ceil(list.total / list.perPage))}
               </span>
               <button
-                type="button" className="button" disabled={list.page >= Math.ceil(list.total / list.perPage)}
+                type="button"
+                className="button"
+                aria-label="Trang sau"
+                disabled={list.page >= Math.ceil(list.total / list.perPage)}
                 onClick={() => changePage(list.page + 1)}
               >
-                Sau »
+                ›
               </button>
             </div>
           )}
@@ -820,72 +936,94 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
   if (!form) return null;
   const v = form.variants[0];
 
-  const pdTabs: { id: string; label: string }[] = [
-    { id: 'general', label: 'Chung' },
-    { id: 'inventory', label: 'Kho' },
-    { id: 'shipping', label: 'Vận chuyển' },
-    { id: 'advanced', label: 'Nâng cao' },
-  ];
+  const profit = v && v.regularPrice && v.regularPrice > 0 && v.costPrice > 0
+    ? v.regularPrice - v.costPrice
+    : null;
 
   return (
     <div className="woo-wrap">
-      <div className="woo-h1">
-        <h1>{editingId ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}</h1>
-        <button type="button" className="button" onClick={() => { setMode('list'); setForm(null); }}>
-          « Quay lại danh sách
-        </button>
+      <div className="woo-topbar">
+        <div className="woo-topbar-left">
+          <button type="button" className="woo-back" onClick={() => { setMode('list'); setForm(null); }}>
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M12.5 4.5 7 10l5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Sản phẩm
+          </button>
+          <span className="woo-topbar-sep">/</span>
+          <span className="woo-topbar-title">
+            {editingId ? form.title || 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
+          </span>
+        </div>
+        <div className="woo-topbar-right">
+          <span className={`woo-badge ${form.status === 'active' ? 'published' : form.status === 'archived' ? 'trash' : 'draft'}`}>
+            {STATUS_LABELS[form.status] ?? form.status}
+          </span>
+          <button
+            type="button"
+            className="button button-primary"
+            disabled={saving || form.status === 'archived'}
+            onClick={() => void saveProduct()}
+          >
+            {saving ? 'Đang lưu…' : 'Lưu'}
+          </button>
+        </div>
       </div>
 
       {notice && <div className={`woo-notice ${notice.kind}`}>{notice.text}</div>}
 
       <div className="woo-editor">
         <div className="woo-editor-left">
-          <div className="woo-metabox" style={{ marginBottom: 16 }}>
-            <div className="woo-metabox-body">
-              <input
-                type="text"
-                className="woo-title-input"
-                placeholder="Nhập tiêu đề sản phẩm ở đây"
-                value={form.title}
-                onChange={(e) => patchForm({ title: e.target.value })}
-              />
-              <div className="woo-slug-line">
-                Đường dẫn tĩnh:
-                {slugEditing ? (
-                  <>
-                    <input
-                      type="text"
-                      value={form.slug}
-                      onChange={(e) => patchForm({ slug: e.target.value })}
-                      style={{ width: 260 }}
-                      onBlur={() => setSlugEditing(false)}
-                      autoFocus
-                    />
-                  </>
-                ) : (
-                  <>
-                    <span className="slug">/{form.slug || 'san-pham'}</span>
-                    <button type="button" className="button" style={{ minHeight: 24, fontSize: 12 }} onClick={() => setSlugEditing(true)}>
-                      Sửa
-                    </button>
-                  </>
-                )}
-              </div>
+          <div className="woo-title-area">
+            <input
+              type="text"
+              className="woo-title-input"
+              placeholder="Nhập tiêu đề sản phẩm ở đây"
+              aria-label="Tiêu đề sản phẩm"
+              value={form.title}
+              onChange={(e) => patchForm({ title: e.target.value })}
+            />
+            <div className="woo-slug-line">
+              Đường dẫn tĩnh:
+              {slugEditing ? (
+                <input
+                  type="text"
+                  aria-label="Đường dẫn tĩnh"
+                  value={form.slug}
+                  onChange={(e) => patchForm({ slug: e.target.value })}
+                  style={{ width: 260 }}
+                  onBlur={() => setSlugEditing(false)}
+                  autoFocus
+                />
+              ) : (
+                <>
+                  <span className="slug">/{form.slug || 'san-pham'}</span>
+                  <button
+                    type="button"
+                    className="button"
+                    style={{ height: 24, minHeight: 24, padding: '0 8px', fontSize: 12 }}
+                    onClick={() => setSlugEditing(true)}
+                  >
+                    Sửa
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
-          <div className="woo-metabox woo-main-editor" style={{ marginBottom: 16 }}>
-            <div className="woo-metabox-body" style={{ padding: 0 }}>
+          <div className="woo-metabox woo-main-editor">
+            <h2>Mô tả</h2>
+            <div className="woo-metabox-body">
               <textarea
                 value={form.description || ''}
                 placeholder="Mô tả chi tiết sản phẩm…"
                 onChange={(e) => patchForm({ description: e.target.value })}
-                style={{ border: 0, borderRadius: '4px 4px 0 0', minHeight: 320 }}
+                style={{ minHeight: 260 }}
               />
             </div>
           </div>
 
-          <div className="woo-metabox woo-short-desc" style={{ marginBottom: 16 }}>
+          <div className="woo-metabox woo-short-desc">
             <h2>Mô tả ngắn</h2>
             <div className="woo-metabox-body">
               <textarea
@@ -896,157 +1034,162 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
             </div>
           </div>
 
-          {/* Product data */}
-          <div className="woo-metabox" style={{ marginBottom: 16 }}>
-            <h2>Dữ liệu sản phẩm</h2>
-            <div className="woo-product-data">
-              <div className="woo-pd-tabs">
-                {pdTabs.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={`woo-pd-tab ${pdTab === t.id ? 'active' : ''}`}
-                    onClick={() => setPdTab(t.id)}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+          {/* Pricing */}
+          <div className="woo-metabox">
+            <h2>Giá</h2>
+            <div className="woo-metabox-body">
+              <div className="woo-price-grid">
+                <div className="woo-form-row">
+                  <label htmlFor="woo-price">Giá bán (₫) <span className="woo-required">*</span></label>
+                  <input
+                    id="woo-price"
+                    type="number" min={0} step="1000"
+                    value={v?.regularPrice ?? ''}
+                    onChange={(e) => patchVariant({ regularPrice: e.target.value === '' ? null : Number(e.target.value) })}
+                  />
+                </div>
+                <div className="woo-form-row">
+                  <label htmlFor="woo-sale">Giá khuyến mãi (₫)</label>
+                  <input
+                    id="woo-sale"
+                    type="number" min={0} step="1000"
+                    value={v?.salePrice ?? ''}
+                    onChange={(e) => patchVariant({ salePrice: e.target.value === '' ? null : Number(e.target.value) })}
+                  />
+                  <p className="description">Để trống nếu không giảm giá.</p>
+                </div>
+                <div className="woo-form-row">
+                  <label htmlFor="woo-cost">Giá vốn (₫)</label>
+                  <input
+                    id="woo-cost"
+                    type="number" min={0} step="1000"
+                    value={v?.costPrice ?? 0}
+                    onChange={(e) => patchVariant({ costPrice: Math.max(0, Number(e.target.value) || 0) })}
+                  />
+                </div>
               </div>
-              <div className="woo-pd-panel">
-                <p className="woo-pd-type">Loại sản phẩm: <strong>Đơn giản</strong></p>
+              {profit !== null && profit >= 0 && v?.regularPrice ? (
+                <p className="woo-profit">
+                  Lợi nhuận ước tính: {formatPrice(profit)} ({Math.round((profit / v.regularPrice) * 100)}%)
+                </p>
+              ) : null}
+            </div>
+          </div>
 
-                {pdTab === 'general' && (
-                  <div className="woo-price-grid">
-                    <div className="woo-form-row">
-                      <label>Giá thường (₫) <span className="woo-required">*</span></label>
-                      <input
-                        type="number" min={0} step="1000"
-                        value={v?.regularPrice ?? ''}
-                        onChange={(e) => patchVariant({ regularPrice: e.target.value === '' ? null : Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="woo-form-row">
-                      <label>Giá khuyến mãi (₫)</label>
-                      <input
-                        type="number" min={0} step="1000"
-                        value={v?.salePrice ?? ''}
-                        onChange={(e) => patchVariant({ salePrice: e.target.value === '' ? null : Number(e.target.value) })}
-                      />
-                      <p className="description">Để trống nếu không giảm giá.</p>
-                    </div>
-                  </div>
-                )}
+          {/* Inventory */}
+          <div className="woo-metabox">
+            <h2>Kho hàng</h2>
+            <div className="woo-metabox-body">
+              <div className="woo-price-grid">
+                <div className="woo-form-row">
+                  <label htmlFor="woo-sku">SKU (Mã sản phẩm)</label>
+                  <input id="woo-sku" type="text" value={v?.sku ?? ''} onChange={(e) => patchVariant({ sku: e.target.value })} />
+                </div>
+                <div className="woo-form-row">
+                  <label htmlFor="woo-barcode">Mã vạch (Barcode)</label>
+                  <input id="woo-barcode" type="text" value={v?.barcode ?? ''} onChange={(e) => patchVariant({ barcode: e.target.value || null })} />
+                </div>
+                <div className="woo-form-row">
+                  <label htmlFor="woo-qty">Số lượng tồn</label>
+                  <input
+                    id="woo-qty"
+                    type="number" min={0}
+                    value={v?.stockOnHand ?? 0}
+                    onChange={(e) => patchVariant({ stockOnHand: Math.max(0, Number(e.target.value) || 0) })}
+                  />
+                </div>
+                <div className="woo-form-row">
+                  <label htmlFor="woo-reorder">Ngưỡng cảnh báo tồn kho</label>
+                  <input
+                    id="woo-reorder"
+                    type="number" min={0}
+                    value={v?.reorderPoint ?? 0}
+                    onChange={(e) => patchVariant({ reorderPoint: Math.max(0, Number(e.target.value) || 0) })}
+                  />
+                  <p className="description">Tồn kho ≤ ngưỡng sẽ hiển thị “Sắp hết hàng”.</p>
+                </div>
+                <div className="woo-form-row">
+                  <label htmlFor="woo-edition">Phiên bản / ấn bản</label>
+                  <input
+                    id="woo-edition"
+                    type="text"
+                    placeholder="VD: Bìa mềm, Tái bản lần 3"
+                    value={v?.editionName ?? ''}
+                    onChange={(e) => patchVariant({ editionName: e.target.value || null })}
+                  />
+                </div>
+              </div>
+              <p className="description">
+                Tình trạng tồn kho:{' '}
+                <span className={`woo-badge ${v && v.stockOnHand - 0 <= 0 ? 'outofstock' : (v?.reorderPoint ?? 0) > 0 && v!.stockOnHand <= v!.reorderPoint ? 'lowstock' : 'instock'}`}>
+                  {(() => {
+                    if (!v) return 'Hết hàng';
+                    if (v.stockOnHand <= 0) return 'Hết hàng';
+                    if (v.reorderPoint > 0 && v.stockOnHand <= v.reorderPoint) return 'Sắp hết hàng';
+                    return `Còn hàng (${v.stockOnHand})`;
+                  })()}
+                </span>
+              </p>
+            </div>
+          </div>
 
-                {pdTab === 'inventory' && (
-                  <>
-                    <div className="woo-price-grid">
-                      <div className="woo-form-row">
-                        <label>SKU (Mã sản phẩm)</label>
-                        <input type="text" value={v?.sku ?? ''} onChange={(e) => patchVariant({ sku: e.target.value })} />
-                      </div>
-                      <div className="woo-form-row">
-                        <label>Mã vạch (Barcode)</label>
-                        <input type="text" value={v?.barcode ?? ''} onChange={(e) => patchVariant({ barcode: e.target.value || null })} />
-                      </div>
-                      <div className="woo-form-row">
-                        <label>Số lượng tồn</label>
-                        <input
-                          type="number" min={0}
-                          value={v?.stockOnHand ?? 0}
-                          onChange={(e) => patchVariant({ stockOnHand: Math.max(0, Number(e.target.value) || 0) })}
-                        />
-                      </div>
-                      <div className="woo-form-row">
-                        <label>Ngưỡng cảnh báo tồn kho</label>
-                        <input
-                          type="number" min={0}
-                          value={v?.reorderPoint ?? 0}
-                          onChange={(e) => patchVariant({ reorderPoint: Math.max(0, Number(e.target.value) || 0) })}
-                        />
-                        <p className="description">Tồn kho ≤ ngưỡng sẽ hiển thị “Sắp hết hàng”.</p>
-                      </div>
-                      <div className="woo-form-row">
-                        <label>Giá vốn (₫)</label>
-                        <input
-                          type="number" min={0} step="1000"
-                          value={v?.costPrice ?? 0}
-                          onChange={(e) => patchVariant({ costPrice: Math.max(0, Number(e.target.value) || 0) })}
-                        />
-                      </div>
-                      <div className="woo-form-row">
-                        <label>Phiên bản / ấn bản</label>
-                        <input
-                          type="text"
-                          placeholder="VD: Bìa mềm, Tái bản lần 3"
-                          value={v?.editionName ?? ''}
-                          onChange={(e) => patchVariant({ editionName: e.target.value || null })}
-                        />
-                      </div>
-                    </div>
-                    <p className="description">
-                      Tình trạng tồn kho:{' '}
-                      <span className={`woo-badge ${v && v.stockOnHand - 0 <= 0 ? 'outofstock' : (v?.reorderPoint ?? 0) > 0 && v!.stockOnHand <= v!.reorderPoint ? 'lowstock' : 'instock'}`}>
-                        {(() => {
-                          if (!v) return 'Hết hàng';
-                          if (v.stockOnHand <= 0) return 'Hết hàng';
-                          if (v.reorderPoint > 0 && v.stockOnHand <= v.reorderPoint) return 'Sắp hết hàng';
-                          return `Còn hàng (${v.stockOnHand})`;
-                        })()}
-                      </span>
-                    </p>
-                  </>
-                )}
+          {/* Shipping */}
+          <div className="woo-metabox">
+            <h2>Vận chuyển</h2>
+            <div className="woo-metabox-body">
+              <div className="woo-price-grid">
+                <div className="woo-form-row">
+                  <label htmlFor="woo-weight">Cân nặng (gram)</label>
+                  <input
+                    id="woo-weight"
+                    type="number" min={0}
+                    value={v?.weight ?? form.weight ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? null : Number(e.target.value);
+                      patchVariant({ weight: val });
+                      patchForm({ weight: val });
+                    }}
+                  />
+                </div>
+                <div className="woo-form-row">
+                  <label htmlFor="woo-dimensions">Kích thước</label>
+                  <input
+                    id="woo-dimensions"
+                    type="text"
+                    placeholder="VD: 14 x 20.5 x 2.8 cm"
+                    value={v?.dimensions ?? form.dimensions ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value || null;
+                      patchVariant({ dimensions: val });
+                      patchForm({ dimensions: val });
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
-                {pdTab === 'shipping' && (
-                  <div className="woo-price-grid">
-                    <div className="woo-form-row">
-                      <label>Cân nặng (gram)</label>
-                      <input
-                        type="number" min={0}
-                        value={v?.weight ?? form.weight ?? ''}
-                        onChange={(e) => {
-                          const val = e.target.value === '' ? null : Number(e.target.value);
-                          patchVariant({ weight: val });
-                          patchForm({ weight: val });
-                        }}
-                      />
-                    </div>
-                    <div className="woo-form-row">
-                      <label>Kích thước</label>
-                      <input
-                        type="text"
-                        placeholder="VD: 14 x 20.5 x 2.8 cm"
-                        value={v?.dimensions ?? form.dimensions ?? ''}
-                        onChange={(e) => {
-                          const val = e.target.value || null;
-                          patchVariant({ dimensions: val });
-                          patchForm({ dimensions: val });
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {pdTab === 'advanced' && (
-                  <>
-                    <div className="woo-form-row">
-                      <label>Ghi chú mua hàng</label>
-                      <textarea
-                        value={form.purchaseNote || ''}
-                        placeholder="Ghi chú hiển thị sau khi khách hàng mua thành công…"
-                        onChange={(e) => patchForm({ purchaseNote: e.target.value || null })}
-                      />
-                    </div>
-                    <div className="woo-form-row" style={{ maxWidth: 160 }}>
-                      <label>Thứ tự menu</label>
-                      <input
-                        type="number" min={0}
-                        value={form.menuOrder}
-                        onChange={(e) => patchForm({ menuOrder: Math.max(0, Number(e.target.value) || 0) })}
-                      />
-                    </div>
-                  </>
-                )}
+          {/* Advanced */}
+          <div className="woo-metabox">
+            <h2>Nâng cao</h2>
+            <div className="woo-metabox-body">
+              <div className="woo-form-row">
+                <label htmlFor="woo-purchase-note">Ghi chú mua hàng</label>
+                <textarea
+                  id="woo-purchase-note"
+                  value={form.purchaseNote || ''}
+                  placeholder="Ghi chú hiển thị sau khi khách hàng mua thành công…"
+                  onChange={(e) => patchForm({ purchaseNote: e.target.value || null })}
+                />
+              </div>
+              <div className="woo-form-row" style={{ maxWidth: 160 }}>
+                <label htmlFor="woo-menu-order">Thứ tự menu</label>
+                <input
+                  id="woo-menu-order"
+                  type="number" min={0}
+                  value={form.menuOrder}
+                  onChange={(e) => patchForm({ menuOrder: Math.max(0, Number(e.target.value) || 0) })}
+                />
               </div>
             </div>
           </div>
@@ -1185,61 +1328,45 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
         {/* Right column */}
         <div className="woo-editor-right">
           <div className="woo-metabox woo-publishbox">
-            <h2>{form.status === 'archived' ? 'Thùng rác' : form.status === 'active' ? 'Cập nhật' : 'Đăng'}</h2>
+            <h2>Trạng thái</h2>
             <div className="woo-metabox-body">
               <div className="woo-form-row">
-                <label>Trạng thái</label>
-                <span className="description">
-                  {form.status === 'active' ? 'Đã xuất bản' : form.status === 'archived' ? 'Thùng rác' : 'Bản nháp'}
-                </span>
-              </div>
-              <div className="woo-form-row">
-                <label>Hiển thị</label>
+                <label htmlFor="woo-status">Trạng thái</label>
                 <select
-                  value={form.catalogVisibility}
-                  onChange={(e) => patchForm({ catalogVisibility: e.target.value })}
+                  id="woo-status"
+                  value={form.status}
+                  disabled={form.status === 'archived' || saving}
+                  onChange={(e) => patchForm({ status: e.target.value as ProductDetail['status'] })}
                 >
-                  <option value="visible">Hiển thị trong cửa hàng và kết quả tìm kiếm</option>
-                  <option value="catalog">Chỉ hiển thị trong cửa hàng</option>
-                  <option value="search">Chỉ hiển thị trong kết quả tìm kiếm</option>
-                  <option value="hidden">Ẩn</option>
+                  <option value="draft">Nháp</option>
+                  <option value="active">Đã xuất bản</option>
+                  {form.status === 'archived' && <option value="archived">Thùng rác</option>}
                 </select>
               </div>
-              {form.publishedAt ? (
-                <p className="description">Đã đăng lúc: {formatDate(form.publishedAt)}</p>
-              ) : (
-                <p className="description">Chưa đăng.</p>
-              )}
+              <p className="description">
+                {form.publishedAt ? `Đã đăng lúc: ${formatDate(form.publishedAt)}` : 'Chưa đăng.'}
+              </p>
               <div className="woo-publish-actions">
-                <button
-                  type="button"
-                  className="button button-primary"
-                  disabled={saving || form.status === 'archived'}
-                  onClick={() => void saveProduct(form.status === 'active' ? {} : { publish: true })}
-                >
-                  {saving ? 'Đang lưu…' : form.status === 'active' ? 'Cập nhật' : 'Đăng'}
-                </button>
-                {form.status === 'draft' && (
-                  <button
-                    type="button"
-                    className="button-link-delete"
-                    disabled={saving}
-                    onClick={() => void saveProduct({ draft: true })}
-                  >
-                    Lưu bản nháp
-                  </button>
-                )}
-                {form.status === 'active' && (
-                  <button
-                    type="button"
-                    className="button-link-delete"
-                    disabled={saving}
-                    onClick={() => void saveProduct({ draft: true })}
-                  >
-                    Chuyển về nháp
-                  </button>
-                )}
-                {form.status !== 'archived' && (
+                {form.status === 'archived' ? (
+                  <>
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      disabled={saving}
+                      onClick={() => void saveProduct({ draft: true })}
+                    >
+                      Khôi phục sản phẩm
+                    </button>
+                    <button
+                      type="button"
+                      className="button-link-delete"
+                      disabled={saving}
+                      onClick={() => void deleteFromEditor()}
+                    >
+                      Xóa vĩnh viễn
+                    </button>
+                  </>
+                ) : (
                   <button
                     type="button"
                     className="button-link-delete"
@@ -1249,26 +1376,36 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
                     Chuyển vào thùng rác
                   </button>
                 )}
-                {form.status === 'archived' && (
-                  <button
-                    type="button"
-                    className="button"
-                    disabled={saving}
-                    onClick={() => void saveProduct({ draft: true })}
-                  >
-                    Khôi phục (bản nháp)
-                  </button>
-                )}
               </div>
             </div>
           </div>
 
           <div className="woo-metabox">
-            <h2>Danh mục sản phẩm</h2>
+            <h2>Cửa hàng trực tuyến</h2>
             <div className="woo-metabox-body">
+              <div className="woo-form-row">
+                <label htmlFor="woo-visibility">Hiển thị</label>
+                <select
+                  id="woo-visibility"
+                  value={form.catalogVisibility}
+                  onChange={(e) => patchForm({ catalogVisibility: e.target.value })}
+                >
+                  <option value="visible">Hiển thị trong cửa hàng và kết quả tìm kiếm</option>
+                  <option value="catalog">Chỉ hiển thị trong cửa hàng</option>
+                  <option value="search">Chỉ hiển thị trong kết quả tìm kiếm</option>
+                  <option value="hidden">Ẩn</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="woo-metabox">
+            <h2>Tổ chức sản phẩm</h2>
+            <div className="woo-metabox-body">
+              <p className="woo-field-label">Danh mục</p>
               <ul className="woo-cat-checklist">
                 {taxonomies.categories.length === 0 && (
-                  <li style={{ padding: '8px 10px', color: '#8c8f94' }}>Chưa có danh mục nào.</li>
+                  <li style={{ padding: '8px 10px', color: '#616161' }}>Chưa có danh mục nào.</li>
                 )}
                 {taxonomies.categories.map((c) => (
                   <li key={c}>
@@ -1291,18 +1428,17 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
                 <input
                   type="text"
                   placeholder="Thêm danh mục mới"
+                  aria-label="Thêm danh mục mới"
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCategory(); } }}
                 />
                 <button type="button" className="button" onClick={addCategory}>Thêm</button>
               </div>
-            </div>
-          </div>
 
-          <div className="woo-metabox">
-            <h2>Thẻ sản phẩm</h2>
-            <div className="woo-metabox-body">
+              <hr className="woo-divider" />
+
+              <p className="woo-field-label">Thẻ</p>
               {form.tags.length > 0 && (
                 <div className="woo-tag-chips">
                   {form.tags.map((t) => (
@@ -1322,6 +1458,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
                 <input
                   type="text"
                   placeholder="Thêm thẻ, ngăn cách bằng phẩy"
+                  aria-label="Thêm thẻ"
                   list="woo-product-tag-suggestions"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
@@ -1349,8 +1486,9 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
                 <p className="description" style={{ margin: '0 0 8px' }}>Chưa đặt ảnh sản phẩm.</p>
               )}
               <div className="woo-form-row">
-                <label>URL ảnh</label>
+                <label htmlFor="woo-cover">URL ảnh</label>
                 <input
+                  id="woo-cover"
                   type="url"
                   placeholder="https://…"
                   value={form.coverImage ?? ''}
