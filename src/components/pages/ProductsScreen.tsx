@@ -472,7 +472,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
     });
   };
 
-  const saveProduct = async (opts: { trash?: boolean } = {}) => {
+  const saveProduct = async (opts: { trash?: boolean; draft?: boolean; publish?: boolean } = {}) => {
     if (!form) return;
     if (!form.title.trim()) {
       setNotice({ kind: 'error', text: 'Vui lòng nhập tiêu đề sản phẩm' });
@@ -484,7 +484,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
       const payload = {
         title: form.title.trim(),
         slug: form.slug || undefined,
-        status: opts.trash ? 'archived' : form.status,
+        status: opts.trash ? 'archived' : opts.draft ? 'draft' : opts.publish ? 'active' : form.status,
         description: form.description || null,
         shortDescription: form.shortDescription || null,
         coverImage: form.coverImage || null,
@@ -542,7 +542,13 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
       setEditingId(null);
       setNotice({
         kind: 'success',
-        text: opts.trash ? 'Đã chuyển sản phẩm vào thùng rác' : (editingId ? 'Đã cập nhật sản phẩm' : 'Đã xuất bản sản phẩm'),
+        text: opts.trash
+          ? 'Đã chuyển sản phẩm vào thùng rác'
+          : opts.draft
+            ? 'Đã lưu bản nháp'
+            : opts.publish && !editingId
+              ? 'Đã xuất bản sản phẩm'
+              : 'Đã cập nhật sản phẩm',
       });
       await loadList();
     } catch (err) {
@@ -1179,18 +1185,13 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
         {/* Right column */}
         <div className="woo-editor-right">
           <div className="woo-metabox woo-publishbox">
-            <h2>{form.status === 'archived' ? 'Thùng rác' : 'Đăng'}</h2>
+            <h2>{form.status === 'archived' ? 'Thùng rác' : form.status === 'active' ? 'Cập nhật' : 'Đăng'}</h2>
             <div className="woo-metabox-body">
               <div className="woo-form-row">
                 <label>Trạng thái</label>
-                <select
-                  value={form.status === 'archived' ? 'draft' : form.status}
-                  onChange={(e) => patchForm({ status: e.target.value as ProductDetail['status'] })}
-                  disabled={form.status === 'archived'}
-                >
-                  <option value="draft">Bản nháp</option>
-                  <option value="active">Đã xuất bản</option>
-                </select>
+                <span className="description">
+                  {form.status === 'active' ? 'Đã xuất bản' : form.status === 'archived' ? 'Thùng rác' : 'Bản nháp'}
+                </span>
               </div>
               <div className="woo-form-row">
                 <label>Hiển thị</label>
@@ -1214,10 +1215,30 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
                   type="button"
                   className="button button-primary"
                   disabled={saving || form.status === 'archived'}
-                  onClick={() => void saveProduct()}
+                  onClick={() => void saveProduct(form.status === 'active' ? {} : { publish: true })}
                 >
-                  {saving ? 'Đang lưu…' : editingId ? 'Cập nhật' : 'Đăng'}
+                  {saving ? 'Đang lưu…' : form.status === 'active' ? 'Cập nhật' : 'Đăng'}
                 </button>
+                {form.status === 'draft' && (
+                  <button
+                    type="button"
+                    className="button-link-delete"
+                    disabled={saving}
+                    onClick={() => void saveProduct({ draft: true })}
+                  >
+                    Lưu bản nháp
+                  </button>
+                )}
+                {form.status === 'active' && (
+                  <button
+                    type="button"
+                    className="button-link-delete"
+                    disabled={saving}
+                    onClick={() => void saveProduct({ draft: true })}
+                  >
+                    Chuyển về nháp
+                  </button>
+                )}
                 {form.status !== 'archived' && (
                   <button
                     type="button"
@@ -1233,7 +1254,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
                     type="button"
                     className="button"
                     disabled={saving}
-                    onClick={() => { patchForm({ status: 'draft' }); }}
+                    onClick={() => void saveProduct({ draft: true })}
                   >
                     Khôi phục (bản nháp)
                   </button>
