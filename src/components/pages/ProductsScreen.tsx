@@ -171,7 +171,8 @@ const WOO_CSS = `
 .woo-search { position: relative; flex: 1 1 240px; max-width: 380px; min-width: 180px; }
 .woo-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #616161; pointer-events: none; }
 .woo-search input { padding-left: 32px !important; }
-.woo-wrap .woo-toolbar > select { width: auto; min-width: 150px; flex: 0 0 auto; }
+.woo-toolbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+.woo-wrap .woo-toolbar-right select { width: auto; min-width: 150px; flex: 0 0 auto; }
 .woo-bulkbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; padding-top: 4px; font-size: 13px; color: #616161; }
 .woo-bulkbar .sel-count { font-weight: 650; color: #303030; }
 .woo-wrap .woo-bulkbar select { width: auto; min-width: 180px; }
@@ -329,9 +330,9 @@ const WOO_CSS = `
 }
 @media (max-width: 640px) {
   .woo-h1 { flex-direction: column; align-items: flex-start; }
-  .woo-toolbar { flex-direction: column; align-items: stretch; }
-  .woo-search { max-width: none; }
-  .woo-wrap .woo-toolbar > select { width: 100%; }
+  .woo-search { flex: 1 1 100%; max-width: none; }
+  .woo-toolbar-right { margin-left: 0; width: 100%; }
+  .woo-wrap .woo-toolbar-right select { flex: 1 1 0; width: auto; min-width: 0; }
 }
 `;
 
@@ -735,21 +736,23 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
               </form>
             </div>
 
-            <select
-              value={categoryFilter}
-              aria-label="Lọc theo danh mục"
-              onChange={(e) => { setCategoryFilter(e.target.value); setList((s) => ({ ...s, page: 1 })); }}
-            >
-              <option value="">Tất cả danh mục</option>
-              {taxonomies.categories.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            <select value={orderby} aria-label="Sắp xếp" onChange={(e) => setOrderby(e.target.value)}>
-              <option value="date">Mới nhất</option>
-              <option value="title">Tên (A → Z)</option>
-              <option value="sku">SKU</option>
-            </select>
+            <div className="woo-toolbar-right">
+              <select
+                value={categoryFilter}
+                aria-label="Lọc theo danh mục"
+                onChange={(e) => { setCategoryFilter(e.target.value); setList((s) => ({ ...s, page: 1 })); }}
+              >
+                <option value="">Tất cả danh mục</option>
+                {taxonomies.categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <select value={orderby} aria-label="Sắp xếp" onChange={(e) => setOrderby(e.target.value)}>
+                <option value="date">Mới nhất</option>
+                <option value="title">Tên (A → Z)</option>
+                <option value="sku">SKU</option>
+              </select>
+            </div>
 
             {selected.size > 0 && (
               <div className="woo-bulkbar">

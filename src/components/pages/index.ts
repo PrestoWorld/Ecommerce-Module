@@ -1,12 +1,40 @@
 import type React from 'react';
-import ProductsScreen from './ProductsScreen';
-import CustomersScreen from './CustomersScreen';
-import OrdersScreen from './OrdersScreen';
-import BillsScreen from './BillsScreen';
-import EcomScreen from './EcomScreen';
-import InvoicesScreen from './InvoicesScreen';
+import { createElement } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ProductsScreenBase from './ProductsScreen';
+import CustomersScreenBase from './CustomersScreen';
+import OrdersScreenBase from './OrdersScreen';
+import BillsScreenBase from './BillsScreen';
+import EcomScreenBase from './EcomScreen';
+import InvoicesScreenBase from './InvoicesScreen';
 
-export { ProductsScreen, CustomersScreen, OrdersScreen, BillsScreen, EcomScreen, InvoicesScreen };
+// The module bundle ships its own copy of @tanstack/react-query (only the
+// react family is external), so a provider in the host app never reaches
+// these screens — wrap every screen with a provider from this bundle.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { refetchOnWindowFocus: false, retry: 1 },
+  },
+});
+
+function withQueryClient<P extends Record<string, unknown>>(
+  Screen: React.ComponentType<P>,
+): React.ComponentType<P> {
+  const Wrapped: React.FC<P> = (props) => createElement(
+    QueryClientProvider,
+    { client: queryClient },
+    createElement(Screen, props),
+  );
+  Wrapped.displayName = `withQueryClient(${Screen.displayName ?? Screen.name ?? 'Screen'})`;
+  return Wrapped;
+}
+
+export const ProductsScreen = withQueryClient(ProductsScreenBase);
+export const CustomersScreen = withQueryClient(CustomersScreenBase);
+export const OrdersScreen = withQueryClient(OrdersScreenBase);
+export const BillsScreen = withQueryClient(BillsScreenBase);
+export const EcomScreen = withQueryClient(EcomScreenBase);
+export const InvoicesScreen = withQueryClient(InvoicesScreenBase);
 
 // Default export: screen-id → component map consumed by the Dashboard
 // module screen loader (SellerCenterPage componentUrl fallback).
