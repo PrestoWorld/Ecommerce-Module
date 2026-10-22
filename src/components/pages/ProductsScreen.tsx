@@ -350,6 +350,14 @@ function ensureStyles(): void {
 /* ── Screen ────────────────────────────────────────────────────── */
 
 type View = 'all' | 'published' | 'draft' | 'trash';
+type EditorHistory = 'push' | 'replace' | 'none';
+
+const PRODUCTS_PATH = '/dashboard/products';
+
+const productIdFromPath = (): string | null => {
+  const match = window.location.pathname.match(/^\/dashboard\/products\/([A-Za-z0-9_-]+)\/?$/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
 
 const ProductsScreen: React.FC<Record<string, unknown>> = () => {
   ensureStyles();
@@ -495,10 +503,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
     try {
       await api(`${API}/${editingId}`, { method: 'DELETE' });
       setNotice({ kind: 'success', text: 'Đã xóa sản phẩm' });
-      setMode('list');
-      setForm(null);
-      setEditingId(null);
-      statusAtLoad.current = null;
+      closeEditor();
       await loadList();
     } catch (err) {
       setNotice({ kind: 'error', text: err instanceof Error ? err.message : 'Thao tác thất bại' });
@@ -507,8 +512,13 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
     }
   };
 
-  const openEditor = async (id: string | null) => {
+  const openEditor = async (id: string | null, opts: { history?: EditorHistory } = {}) => {
     setNotice(null);
+    const historyMode = opts.history ?? 'push';
+    const nextPath = id === null ? PRODUCTS_PATH : `${PRODUCTS_PATH}/${id}`;
+    if (historyMode !== 'none' && window.location.pathname !== nextPath) {
+      window.history[historyMode === 'replace' ? 'replaceState' : 'pushState'](null, '', nextPath);
+    }
     if (id === null) {
       setForm({
         id: '', title: '', slug: '', status: 'draft', subtitle: null,
@@ -540,9 +550,45 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
       statusAtLoad.current = detail.status;
       setMode('edit');
     } catch (err) {
+      window.history.replaceState(null, '', PRODUCTS_PATH);
       setNotice({ kind: 'error', text: err instanceof Error ? err.message : 'Không mở được sản phẩm' });
     }
   };
+
+  const closeEditor = () => {
+    setMode('list');
+    setForm(null);
+    setEditingId(null);
+    statusAtLoad.current = null;
+    if (window.location.pathname !== PRODUCTS_PATH) {
+      window.history.pushState(null, '', PRODUCTS_PATH);
+    }
+  };
+
+  const openEditorRef = useRef(openEditor);
+  openEditorRef.current = openEditor;
+
+  // Deep link: /dashboard/products/{id} opens the editor for that product.
+  useEffect(() => {
+    const id = productIdFromPath();
+    if (id) void openEditorRef.current(id, { history: 'none' });
+  }, []);
+
+  // Browser back/forward between list and editor.
+  useEffect(() => {
+    const onPopState = () => {
+      const id = productIdFromPath();
+      if (id) {
+        void openEditorRef.current(id, { history: 'none' });
+        return;
+      }
+      setMode('list');
+      setForm(null);
+      setEditingId(null);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const patchForm = (patch: Partial<ProductDetail>) => {
     setForm((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -631,10 +677,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
 
       if (opts.trash) {
         setNotice({ kind: 'success', text: 'Đã chuyển sản phẩm vào thùng rác' });
-        setMode('list');
-        setForm(null);
-        setEditingId(null);
-        statusAtLoad.current = null;
+        closeEditor();
         await loadList();
         return;
       }
@@ -642,6 +685,10 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
       // Shopify-style: stay in the editor after saving.
       setForm(saved);
       setEditingId(saved.id);
+      const savedPath = `${PRODUCTS_PATH}/${saved.id}`;
+      if (window.location.pathname !== savedPath) {
+        window.history.replaceState(null, '', savedPath);
+      }
       statusAtLoad.current = saved.status;
       const text = opts.draft && wasArchived
         ? 'Đã khôi phục sản phẩm'
@@ -833,7 +880,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
                   <td>
                     <div className="woo-title-cell">
                       <div>
-                        <a className="woo-row-title" onClick={(e) => { e.preventDefault(); void openEditor(item.id); }} href="#">
+                        <a className="woo-row-title" onClick={(e) => { e.preventDefault(); void openEditor(item.id); }} href={`${PRODUCTS_PATH}/${item.id}`}>
                           {item.title || '(Không có tiêu đề)'}
                         </a>
                         <div className="woo-row-actions">
@@ -948,7 +995,7 @@ const ProductsScreen: React.FC<Record<string, unknown>> = () => {
     <div className="woo-wrap">
       <div className="woo-topbar">
         <div className="woo-topbar-left">
-          <button type="button" className="woo-back" onClick={() => { setMode('list'); setForm(null); }}>
+          <button type="button" className="woo-back" onClick={closeEditor}>
             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M12.5 4.5 7 10l5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
