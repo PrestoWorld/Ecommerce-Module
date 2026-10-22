@@ -75,7 +75,7 @@ return new class implements MigrationInterface {
         $table->primary('id');
         $table->column('business_id')->string(64);
         $table->column('customer_external_id')->string(64);
-        $table->column('items')->text()->defaultValue('[]'); // JSON array
+        $table->column('items')->text(); // JSON array
         $table->column('metadata')->text()->nullable(); // JSON
         $table->column('created_at')->bigInteger()->defaultValue(0);
         $table->column('updated_at')->bigInteger()->defaultValue(0);

@@ -38,8 +38,8 @@ return new class implements MigrationInterface {
         $table->column('type')->string(32)->defaultValue('percentage'); // percentage, fixed
         $table->column('scope')->string(32)->defaultValue('national'); // national, regional, local
         $table->column('region')->string(64)->nullable(); // province/state code
-        $table->column('applicable_categories')->text()->defaultValue('[]'); // JSON array
-        $table->column('exempt_categories')->text()->defaultValue('[]'); // JSON array
+        $table->column('applicable_categories')->text(); // JSON array
+        $table->column('exempt_categories')->text(); // JSON array
         $table->column('is_compound')->boolean()->defaultValue(false);
         $table->column('priority')->integer()->defaultValue(0);
         $table->column('is_active')->boolean()->defaultValue(true);
