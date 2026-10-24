@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace PrestoWorld\Modules\Ecommerce\Domain\Inventory\Stock;
 
 use Cycle\Database\DatabaseInterface;
-use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\StockDriverInterface;
-use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\StockMovementRepositoryInterface;
-use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\StockRepositoryInterface;
+use PrestoWorld\Modules\Ecommerce\Contracts\StockDriverInterface;
+use PrestoWorld\Modules\Ecommerce\Contracts\StockMovementRepositoryInterface;
+use PrestoWorld\Modules\Ecommerce\Contracts\StockRepositoryInterface;
+use PrestoWorld\Modules\Ecommerce\Contracts\WebhookRepositoryInterface;
 
 /**
  * Template-method base for stock drivers.
@@ -24,6 +25,7 @@ abstract class AbstractStockDriver implements StockDriverInterface
         protected string $businessId,
         protected StockRepositoryInterface $stocks,
         protected StockMovementRepositoryInterface $stockMovements,
+        protected WebhookRepositoryInterface $webhooks,
     ) {
     }
 
@@ -249,6 +251,26 @@ abstract class AbstractStockDriver implements StockDriverInterface
             'reference_type' => $referenceType,
             'created_at' => $now,
         ]);
+
+        $this->webhooks->enqueue(
+            'stockChange',
+            $this->businessId,
+            [
+                'variantExternalId' => $variantExternalId,
+                'sku' => (string) ($variant['sku'] ?? ''),
+                'title' => (string) ($variant['master_title'] ?? ''),
+                'onHand' => $onHand,
+                'reserved' => $reserved,
+                'available' => $available,
+                'delta' => $delta,
+                'before' => $before,
+                'after' => $onHand,
+                'reason' => $reason,
+                'referenceType' => $referenceType,
+                'referenceId' => $referenceId,
+                'createdAt' => $now,
+            ],
+        );
 
         return $this->getStock($variantExternalId);
     }

@@ -9,6 +9,7 @@ use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\LocationRepositoryI
 use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\StockDriverInterface;
 use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\StockMovementRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\StockRepositoryInterface;
+use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\WebhookRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Stock\EcommerceStockDriver;
 use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Stock\StockDriverRegistry;
 use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Storage\LocationRepository;
@@ -100,6 +101,7 @@ class Module extends WitalsModule
                 $this->stockBusinessId($app),
                 $app->make(StockRepositoryInterface::class),
                 $app->make(StockMovementRepositoryInterface::class),
+                $app->make(WebhookRepositoryInterface::class),
             ));
         }
 
