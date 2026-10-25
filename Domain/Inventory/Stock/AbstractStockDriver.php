@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace PrestoWorld\Modules\Ecommerce\Domain\Inventory\Stock;
 
 use Cycle\Database\DatabaseInterface;
-use PrestoWorld\Modules\Ecommerce\Contracts\StockDriverInterface;
-use PrestoWorld\Modules\Ecommerce\Contracts\StockMovementRepositoryInterface;
-use PrestoWorld\Modules\Ecommerce\Contracts\StockRepositoryInterface;
+use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\StockDriverInterface;
+use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\StockMovementRepositoryInterface;
+use PrestoWorld\Modules\Ecommerce\Domain\Inventory\Contracts\StockRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\WebhookRepositoryInterface;
 
 /**
