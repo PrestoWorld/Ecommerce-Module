@@ -153,8 +153,8 @@ Chi tiết thuật toán: [WarehousePricing README](../../../WarehousePricing/RE
 ## Test
 
 ```bash
-./vendor/bin/phpunit modules/Ecommerce/tests    # 51 tests (43 cũ + 8 attribute)
-./vendor/bin/phpunit tests/Unit/Modules/WarehousePricing   # 14 tests (gồm 5 tương thích)
+./vendor/bin/phpunit modules/Ecommerce/tests              # 51 tests (43 cũ + 8 attribute)
+./vendor/bin/phpunit --testsuite WarehousePricing         # 14 tests (gồm 5 tương thích)
 ```
 
 `ProductAttributeRepositoryTest` phủ: UUID PK, upsert theo code (giữ id), filter/sort,
