@@ -19,6 +19,8 @@ use PrestoWorld\Modules\Ecommerce\Contracts\ShippingDirectoryRepositoryInterface
 use PrestoWorld\Modules\Ecommerce\Contracts\SyncCursorRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\VpageRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Contracts\WebhookRepositoryInterface;
+use PrestoWorld\Modules\Ecommerce\Domain\Attribute\Module as AttributeModule;
+use PrestoWorld\Modules\Ecommerce\Http\AdminProductAttributesController;
 use PrestoWorld\Modules\Ecommerce\Http\AdminProductsController;
 use PrestoWorld\Modules\Ecommerce\Http\AdminStockController;
 
@@ -99,6 +101,7 @@ class Module extends WitalsModule
         $domainModules = [
             SharedKernelModule::class,
             CatalogModule::class,
+            AttributeModule::class,
             OrderModule::class,
             BillingModule::class,
             TaxModule::class,
@@ -244,6 +247,26 @@ class Module extends WitalsModule
 
         foreach ($stockRoutes as [$method, $path]) {
             $registry->addRoute($method, $path, $stockAction, RouteRegistryInterface::PRIORITY_MODULE);
+        }
+
+        // Product attributes (EAV definitions + values) — dispatch theo path
+        // trong AdminProductAttributesController::handle.
+        $attributeAction = [AdminProductAttributesController::class, 'handle'];
+        $attributePrefix = '/api/admin/product-attributes';
+
+        $attributeRoutes = [
+            ['GET', $attributePrefix],
+            ['POST', $attributePrefix],
+            ['PUT', $attributePrefix . '/{id}'],
+            ['PATCH', $attributePrefix . '/{id}'],
+            ['DELETE', $attributePrefix . '/{id}'],
+            ['GET', $attributePrefix . '/values'],
+            ['POST', $attributePrefix . '/values'],
+            ['DELETE', $attributePrefix . '/values/{id}'],
+        ];
+
+        foreach ($attributeRoutes as [$method, $path]) {
+            $registry->addRoute($method, $path, $attributeAction, RouteRegistryInterface::PRIORITY_MODULE);
         }
     }
 
