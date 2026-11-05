@@ -8,7 +8,6 @@ use Cycle\Database\Query\SelectQuery;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Contracts\ProductMasterRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Contracts\ProductVariantRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Storage\AbstractRepository;
-use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Storage\Catalog\ProductMasterRepository;
 
 final class ProductVariantRepository extends AbstractRepository implements ProductVariantRepositoryInterface
 {
@@ -73,47 +72,41 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
         return $this->rows($rows);
     }
 
-    public function findDefaultByMaster(string $businessId, string $masterExternalId): ?array
+    public function findDefault(string $businessId, string $masterExternalId): ?array
     {
-        $masterRepo = new ProductMasterRepository($this->db, $this->prefix);
-        $master = $masterRepo->find($businessId, $masterExternalId);
-        if (!$master) {
-            return null;
+        $variants = $this->findByMaster($businessId, $masterExternalId);
+        foreach ($variants as $variant) {
+            if (!empty($variant['is_default'])) {
+                return $variant;
+            }
         }
 
-        $row = $this->db->select('*')->from($this->table('product_variants'))
-            ->where('business_id', $businessId)
-            ->where('master_id', $master['id'])
-            ->where('is_default', true)
-            ->run()->fetch();
-
-        return $row === false ? null : $this->decoded($row);
+        return $variants[0] ?? null;
     }
 
     public function save(string $businessId, array $data): array
     {
         $externalId = (string) ($data['external_id'] ?? $data['id'] ?? '');
         if ($externalId === '') {
-            $externalId = 'variant_' . bin2hex(random_bytes(8));
+            $externalId = 'var_' . bin2hex(random_bytes(8));
         }
         $now = time();
 
-        // Resolve master_id from master_external_id
+        $masterRepo = new ProductMasterRepository($this->db, $this->prefix);
+        $masterExternal = (string) ($data['master_external_id'] ?? '');
         $masterId = $data['master_id'] ?? null;
-        if (!$masterId && isset($data['master_external_id'])) {
-            $masterRepo = new ProductMasterRepository($this->db, $this->prefix);
-            $master = $masterRepo->find($businessId, $data['master_external_id']);
+        if (!$masterId && $masterExternal !== '') {
+            $master = $masterRepo->find($businessId, $masterExternal);
             $masterId = $master['id'] ?? null;
         }
-
         if (!$masterId) {
-            throw new \InvalidArgumentException('master_id or master_external_id is required');
+            throw new \InvalidArgumentException('master_id required');
         }
 
         $values = [
             'business_id' => $businessId,
             'external_id' => $externalId,
-            'master_id' => $masterId,
+            'master_id' => (int) $masterId,
             'sku' => (string) ($data['sku'] ?? ''),
             'barcode' => $data['barcode'] ?? null,
             'edition' => (int) ($data['edition'] ?? 1),
@@ -128,7 +121,7 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
             'currency' => (string) ($data['currency'] ?? 'VND'),
             'stock_on_hand' => (int) ($data['stock_on_hand'] ?? 0),
             'stock_reserved' => (int) ($data['stock_reserved'] ?? 0),
-            'stock_available' => (int) ($data['stock_available'] ?? (($data['stock_on_hand'] ?? 0) - ($data['stock_reserved'] ?? 0))),
+            'stock_available' => (int) ($data['stock_available'] ?? 0),
             'reorder_point' => (int) ($data['reorder_point'] ?? 0),
             'reorder_qty' => (int) ($data['reorder_qty'] ?? 0),
             'location' => $data['location'] ?? null,
@@ -143,14 +136,6 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
             'created_at' => (int) ($data['created_at'] ?? $now),
             'updated_at' => (int) ($data['updated_at'] ?? $now),
         ];
-
-        // If setting as default, unset other defaults for this master
-        if ($values['is_default']) {
-            $this->db->update($this->table('product_variants'), ['is_default' => false], [
-                'business_id' => $businessId,
-                'master_id' => $masterId,
-            ])->run();
-        }
 
         $existing = $this->db->select('id')->from($this->table('product_variants'))
             ->where('business_id', $businessId)
@@ -182,90 +167,6 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
         return $result > 0;
     }
 
-    public function updateStock(string $businessId, string $externalId, int $quantity, string $operation = 'add'): array
-    {
-        $variant = $this->find($businessId, $externalId);
-        if (!$variant) {
-            throw new \InvalidArgumentException("Variant not found: $externalId");
-        }
-
-        $currentOnHand = (int) ($variant['stock_on_hand'] ?? 0);
-        $currentReserved = (int) ($variant['stock_reserved'] ?? 0);
-
-        if ($operation === 'add') {
-            $newOnHand = $currentOnHand + $quantity;
-        } elseif ($operation === 'subtract') {
-            $newOnHand = max(0, $currentOnHand - $quantity);
-        } else { // 'set'
-            $newOnHand = max(0, $quantity);
-        }
-
-        $newAvailable = max(0, $newOnHand - $currentReserved);
-
-        $values = [
-            'stock_on_hand' => $newOnHand,
-            'stock_available' => $newAvailable,
-            'updated_at' => time(),
-        ];
-
-        $this->db->update($this->table('product_variants'), $values, ['id' => $variant['id']])->run();
-
-        return $this->find($businessId, $externalId) ?? [];
-    }
-
-    public function reserveStock(string $businessId, string $externalId, int $quantity): array
-    {
-        $variant = $this->find($businessId, $externalId);
-        if (!$variant) {
-            throw new \InvalidArgumentException("Variant not found: $externalId");
-        }
-
-        $currentOnHand = (int) ($variant['stock_on_hand'] ?? 0);
-        $currentReserved = (int) ($variant['stock_reserved'] ?? 0);
-        $currentAvailable = (int) ($variant['stock_available'] ?? 0);
-
-        if ($currentAvailable < $quantity) {
-            throw new \RuntimeException("Insufficient stock: available $currentAvailable, requested $quantity");
-        }
-
-        $newReserved = $currentReserved + $quantity;
-        $newAvailable = $currentAvailable - $quantity;
-
-        $values = [
-            'stock_reserved' => $newReserved,
-            'stock_available' => $newAvailable,
-            'updated_at' => time(),
-        ];
-
-        $this->db->update($this->table('product_variants'), $values, ['id' => $variant['id']])->run();
-
-        return $this->find($businessId, $externalId) ?? [];
-    }
-
-    public function releaseStock(string $businessId, string $externalId, int $quantity): array
-    {
-        $variant = $this->find($businessId, $externalId);
-        if (!$variant) {
-            throw new \InvalidArgumentException("Variant not found: $externalId");
-        }
-
-        $currentReserved = (int) ($variant['stock_reserved'] ?? 0);
-        $currentAvailable = (int) ($variant['stock_available'] ?? 0);
-
-        $newReserved = max(0, $currentReserved - $quantity);
-        $newAvailable = $currentAvailable + min($quantity, $currentReserved);
-
-        $values = [
-            'stock_reserved' => $newReserved,
-            'stock_available' => $newAvailable,
-            'updated_at' => time(),
-        ];
-
-        $this->db->update($this->table('product_variants'), $values, ['id' => $variant['id']])->run();
-
-        return $this->find($businessId, $externalId) ?? [];
-    }
-
     public function getChannelProducts(string $businessId, string $variantExternalId): array
     {
         $variant = $this->find($businessId, $variantExternalId);
@@ -279,63 +180,5 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
             ->run()->fetchAll();
 
         return $this->rows($rows);
-    }
-
-    private function applyFilters(SelectQuery $query, string $businessId, array $filters): SelectQuery
-    {
-        $query->where('business_id', $businessId);
-
-        if (isset($filters['master_external_id']) && is_string($filters['master_external_id']) && $filters['master_external_id'] !== '') {
-            $masterRepo = new ProductMasterRepository($this->db, $this->prefix);
-            $master = $masterRepo->find($businessId, $filters['master_external_id']);
-            if ($master) {
-                $query->where('master_id', $master['id']);
-            }
-        }
-
-        if (isset($filters['master_id']) && is_numeric($filters['master_id'])) {
-            $query->where('master_id', (int) $filters['master_id']);
-        }
-
-        if (isset($filters['keyword']) && is_string($filters['keyword']) && $filters['keyword'] !== '') {
-            $keyword = $filters['keyword'];
-            $query->where(fn (SelectQuery $q) => $q
-                ->where('sku', 'LIKE', '%' . $keyword . '%')
-                ->orWhere('external_id', 'LIKE', '%' . $keyword . '%')
-                ->orWhere('barcode', 'LIKE', '%' . $keyword . '%')
-                ->orWhere('edition_name', 'LIKE', '%' . $keyword . '%'));
-        }
-
-        if (isset($filters['status']) && is_string($filters['status']) && $filters['status'] !== '') {
-            $query->where('status', $filters['status']);
-        }
-
-        if (isset($filters['supplier_id']) && is_string($filters['supplier_id']) && $filters['supplier_id'] !== '') {
-            $query->where('supplier_id', $filters['supplier_id']);
-        }
-
-        if (isset($filters['low_stock']) && filter_var($filters['low_stock'], FILTER_VALIDATE_BOOLEAN)) {
-            $query->where('stock_available', '<=', new \Cycle\Database\Query\Expression('reorder_point'));
-        }
-
-        return $query;
-    }
-
-    private function ordering(array $sort): array
-    {
-        $column = 'created_at';
-        $direction = 'DESC';
-
-        foreach ($sort as $key => $value) {
-            $key = strtolower((string) preg_replace('/([a-z])([A-Z])/', '$1_$2', $key));
-            if (!in_array($key, ['created_at', 'id', 'updated_at', 'sku', 'edition', 'publication_year', 'cover_price', 'stock_available'], true)) {
-                continue;
-            }
-            $column = $key;
-            $direction = strtolower((string) $value) === 'asc' ? 'ASC' : 'DESC';
-            break;
-        }
-
-        return [$column, $direction];
     }
 }
