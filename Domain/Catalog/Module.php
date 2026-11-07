@@ -6,10 +6,13 @@ namespace PrestoWorld\Modules\Ecommerce\Domain\Catalog;
 
 use Cycle\Database\DatabaseInterface;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Contracts\ChannelProductRepositoryInterface;
+use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Contracts\GroqClientInterface;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Contracts\ProductMasterRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Contracts\ProductVariantOptionRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Contracts\ProductVariantRepositoryInterface;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Headless\CatalogProvider;
+use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Services\AiAuditService;
+use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Services\GroqClient;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Storage\Catalog\ChannelProductRepository;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Storage\Catalog\ProductMasterRepository;
 use PrestoWorld\Modules\Ecommerce\Domain\Catalog\Storage\Catalog\ProductVariantOptionRepository;
@@ -37,6 +40,7 @@ class Module extends WitalsModule
     public function register(): void
     {
         $this->bindRepositories();
+        $this->registerAiServices();
 
         $this->app->singleton(CatalogProvider::class, function (Application $app): CatalogProvider {
             return new CatalogProvider(
@@ -73,6 +77,20 @@ class Module extends WitalsModule
         foreach ($bindings as $abstract => $concrete) {
             $this->app->singleton($abstract, fn (Application $app) => new $concrete($db($app), $prefix($app)));
         }
+    }
+
+    private function registerAiServices(): void
+    {
+        $this->app->singleton(GroqClient::class, fn (Application $app): GroqClient => new GroqClient($app));
+        $this->app->singleton(GroqClientInterface::class, fn (Application $app): GroqClientInterface => $this->resolve($app, GroqClient::class));
+        $this->app->singleton(AiAuditService::class, function (Application $app): AiAuditService {
+            return new AiAuditService(
+                $this->resolve($app, GroqClientInterface::class),
+                $this->resolve($app, ProductMasterRepositoryInterface::class),
+                $this->resolve($app, ProductVariantRepositoryInterface::class),
+                $this->resolve($app, ChannelProductRepositoryInterface::class),
+            );
+        });
     }
 
     private function headlessBusinessId(Application $app): string

@@ -159,6 +159,8 @@ final class ChannelProductRepository extends AbstractRepository implements Chann
             'created_at' => (int) ($data['created_at'] ?? $now),
             'updated_at' => (int) ($data['updated_at'] ?? $now),
             'published_at' => $data['published_at'] ?? null,
+            'ai_audit' => (bool) ($data['ai_audit'] ?? false),
+            'manual_audit' => (bool) ($data['manual_audit'] ?? false),
         ];
 
         $existing = $this->db->select('id')->from($this->table('channel_products'))->where('business_id', $businessId)->where('external_id', $externalId)->run()->fetch();
