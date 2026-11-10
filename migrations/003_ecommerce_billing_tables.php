@@ -36,7 +36,9 @@ return new class implements MigrationInterface {
                 continue;
             }
 
-            $db->table($prefix . $name)->getSchema()->drop();
+            $schema = $db->table($prefix . $name)->getSchema();
+            $schema->declareDropped();
+            $schema->save();
         }
     }
 

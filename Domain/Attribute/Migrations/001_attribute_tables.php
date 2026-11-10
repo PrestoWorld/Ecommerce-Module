@@ -53,7 +53,9 @@ return new class implements MigrationInterface {
         }
 
         $schema = $this->schema($db, $table);
-        $schema->column('id')->string(36);
+        // PK chuỗi phải NOT NULL — Cycle default nullable=true, MySQL bỏ qua
+        // PRIMARY KEY trên cột NULL (lỗi 1171).
+        $schema->column('id')->string(36)->nullable(false);
         $schema->column('business_id')->string(64);
         $schema->column('code')->string(64); // vd: warehouse, condition, binding_type, color
         $schema->column('name')->string(255);
@@ -84,7 +86,7 @@ return new class implements MigrationInterface {
         }
 
         $schema = $this->schema($db, $table);
-        $schema->column('id')->string(36);
+        $schema->column('id')->string(36)->nullable(false); // PK — xem lỗi 1171 ở bảng trên
         $schema->column('business_id')->string(64);
         $schema->column('attribute_code')->string(64);
         $schema->column('product_external_id')->string(64);
