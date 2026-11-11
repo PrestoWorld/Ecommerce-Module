@@ -39,6 +39,7 @@ use PrestoWorld\Modules\Ecommerce\Domain\Sales\Module as SalesModule;
 // Legacy POS integrations
 use PrestoWorld\Modules\Ecommerce\Headless\EcommerceProvider;
 use PrestoWorld\Modules\Ecommerce\Services\NhanhClient;
+use PrestoWorld\Modules\Ecommerce\Services\NhanhClientInterface;
 use PrestoWorld\Modules\Ecommerce\Storage\Affiliate\AffiliateRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\BillRepository;
 use PrestoWorld\Modules\Ecommerce\Storage\Common\AuthRepository;
@@ -84,6 +85,7 @@ class Module extends WitalsModule
 
         // Nhanh.vn integration
         $this->app->singleton(NhanhClient::class, fn (Application $app) => new NhanhClient($app));
+        $this->app->singleton(NhanhClientInterface::class, fn (Application $app) => $app->make(NhanhClient::class));
 
         // Headless CMS provider
         $this->app->singleton(EcommerceProvider::class, function (Application $app): EcommerceProvider {

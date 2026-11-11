@@ -7,7 +7,7 @@ namespace PrestoWorld\Modules\Ecommerce\Services;
 use Symfony\Component\HttpClient\HttpClient;
 use Witals\Framework\Application;
 
-final class NhanhClient
+final class NhanhClient implements NhanhClientInterface
 {
     public function __construct(
         private Application $app,
@@ -50,12 +50,13 @@ final class NhanhClient
         ];
     }
 
-    public function getAccessToken(string $appId, string $secretKey): array
+    public function getAccessToken(string $appId, string $accessCode, string $secretKey): array
     {
-        return $this->post('pos', '/v3.0/openapi/getaccesstoken', [
+        return $this->post('pos', '/v3.0/app/getaccesstoken', [
             'appId' => $appId,
         ], [
-            'appSecret' => $secretKey,
+            'accessCode' => $accessCode,
+            'secretKey' => $secretKey,
         ]);
     }
 
