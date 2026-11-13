@@ -72,7 +72,7 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
         return $this->rows($rows);
     }
 
-    public function findDefault(string $businessId, string $masterExternalId): ?array
+    public function findDefaultByMaster(string $businessId, string $masterExternalId): ?array
     {
         $variants = $this->findByMaster($businessId, $masterExternalId);
         foreach ($variants as $variant) {
@@ -82,6 +82,104 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
         }
 
         return $variants[0] ?? null;
+    }
+
+    public function updateStock(string $businessId, string $externalId, int $quantity, string $operation = 'add'): array
+    {
+        $variant = $this->find($businessId, $externalId);
+        if (!$variant) {
+            throw new \InvalidArgumentException('Variant not found');
+        }
+
+        $currentStock = (int) ($variant['stock_on_hand'] ?? 0);
+        $currentReserved = (int) ($variant['stock_reserved'] ?? 0);
+        $currentAvailable = (int) ($variant['stock_available'] ?? 0);
+
+        if ($operation === 'add') {
+            $newStock = $currentStock + $quantity;
+            $newAvailable = $currentAvailable + $quantity;
+        } elseif ($operation === 'subtract') {
+            $newStock = max(0, $currentStock - $quantity);
+            $newAvailable = max(0, $currentAvailable - $quantity);
+        } else {
+            $newStock = $quantity;
+            $newAvailable = $quantity - $currentReserved;
+        }
+
+        $now = time();
+        $this->db->update($this->table('product_variants'), [
+            'stock_on_hand' => $newStock,
+            'stock_available' => $newAvailable,
+            'updated_at' => $now,
+        ], ['business_id' => $businessId, 'external_id' => $externalId])->run();
+
+        return [
+            'stock_on_hand' => $newStock,
+            'stock_reserved' => $currentReserved,
+            'stock_available' => $newAvailable,
+        ];
+    }
+
+    public function reserveStock(string $businessId, string $externalId, int $quantity): array
+    {
+        $variant = $this->find($businessId, $externalId);
+        if (!$variant) {
+            throw new \InvalidArgumentException('Variant not found');
+        }
+
+        $currentAvailable = (int) ($variant['stock_available'] ?? 0);
+        $currentReserved = (int) ($variant['stock_reserved'] ?? 0);
+
+        if ($currentAvailable < $quantity) {
+            throw new \RuntimeException('Insufficient stock available for reservation');
+        }
+
+        $newAvailable = $currentAvailable - $quantity;
+        $newReserved = $currentReserved + $quantity;
+        $now = time();
+
+        $this->db->update($this->table('product_variants'), [
+            'stock_reserved' => $newReserved,
+            'stock_available' => $newAvailable,
+            'updated_at' => $now,
+        ], ['business_id' => $businessId, 'external_id' => $externalId])->run();
+
+        return [
+            'stock_on_hand' => (int) ($variant['stock_on_hand'] ?? 0),
+            'stock_reserved' => $newReserved,
+            'stock_available' => $newAvailable,
+        ];
+    }
+
+    public function releaseStock(string $businessId, string $externalId, int $quantity): array
+    {
+        $variant = $this->find($businessId, $externalId);
+        if (!$variant) {
+            throw new \InvalidArgumentException('Variant not found');
+        }
+
+        $currentReserved = (int) ($variant['stock_reserved'] ?? 0);
+        $currentAvailable = (int) ($variant['stock_available'] ?? 0);
+
+        if ($currentReserved < $quantity) {
+            throw new \RuntimeException('Cannot release more stock than reserved');
+        }
+
+        $newReserved = $currentReserved - $quantity;
+        $newAvailable = $currentAvailable + $quantity;
+        $now = time();
+
+        $this->db->update($this->table('product_variants'), [
+            'stock_reserved' => $newReserved,
+            'stock_available' => $newAvailable,
+            'updated_at' => $now,
+        ], ['business_id' => $businessId, 'external_id' => $externalId])->run();
+
+        return [
+            'stock_on_hand' => (int) ($variant['stock_on_hand'] ?? 0),
+            'stock_reserved' => $newReserved,
+            'stock_available' => $newAvailable,
+        ];
     }
 
     public function save(string $businessId, array $data): array
