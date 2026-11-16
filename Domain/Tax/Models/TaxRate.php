@@ -22,16 +22,16 @@ final class TaxRate implements JsonSerializable
         public readonly string $type, // percentage, fixed
         public readonly string $scope, // national, regional, local
         public readonly ?string $region, // province/state code
+        public readonly int $validFrom,
+        public readonly int $createdAt,
+        public readonly int $updatedAt,
         public readonly array $applicableCategories = [], // product categories this applies to
         public readonly array $exemptCategories = [], // categories exempt from this tax
         public readonly bool $isCompound = false, // whether this tax compounds on others
         public readonly int $priority = 0, // calculation order
         public readonly bool $isActive = true,
-        public readonly int $validFrom,
         public readonly ?int $validUntil = null,
         public readonly array $metadata = [],
-        public readonly int $createdAt,
-        public readonly int $updatedAt,
     ) {}
 
     public static function fromArray(array $data): self

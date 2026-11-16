@@ -33,7 +33,6 @@ final class Order implements JsonSerializable
         public readonly ?Address $shippingAddress,
         public readonly ?string $customerNote,
         public readonly ?string $internalNote,
-        public readonly array $metadata = [], // flexible data
         public readonly int $createdAt,
         public readonly int $updatedAt,
         public readonly ?int $confirmedAt = null,
@@ -41,6 +40,7 @@ final class Order implements JsonSerializable
         public readonly ?int $deliveredAt = null,
         public readonly ?int $cancelledAt = null,
         public readonly ?string $cancelledReason = null,
+        public readonly array $metadata = [], // flexible data
     ) {}
 
     public static function fromArray(array $data): self

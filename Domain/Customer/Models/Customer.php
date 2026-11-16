@@ -26,6 +26,8 @@ final class Customer implements JsonSerializable
         public readonly ?Address $defaultShippingAddress,
         public readonly string $status, // active, inactive, blocked, guest
         public readonly string $tier, // bronze, silver, gold, platinum, vip
+        public readonly int $createdAt,
+        public readonly int $updatedAt,
         public readonly int $totalOrders = 0,
         public readonly int $totalSpent = 0, // in smallest currency unit
         public readonly int $loyaltyPoints = 0,
@@ -34,8 +36,6 @@ final class Customer implements JsonSerializable
         public readonly ?string $referredBy = null,
         public readonly array $tags = [],
         public readonly array $metadata = [],
-        public readonly int $createdAt,
-        public readonly int $updatedAt,
         public readonly ?int $lastOrderAt = null,
         public readonly ?int $lastLoginAt = null,
     ) {}

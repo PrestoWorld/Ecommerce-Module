@@ -21,6 +21,8 @@ final class Shipment implements JsonSerializable
         public readonly string $carrierName,
         public readonly string $trackingNumber,
         public readonly string $status, // pending, picked_up, in_transit, out_for_delivery, delivered, failed, returned
+        public readonly int $createdAt,
+        public readonly int $updatedAt,
         public readonly ?Money $shippingFee = null,
         public readonly ?Money $codAmount = null,
         public readonly ?Money $insuranceValue = null,
@@ -33,8 +35,6 @@ final class Shipment implements JsonSerializable
         public readonly ?int $deliveredAt = null,
         public readonly array $trackingHistory = [],
         public readonly array $metadata = [],
-        public readonly int $createdAt,
-        public readonly int $updatedAt,
     ) {}
 
     public static function fromArray(array $data): self

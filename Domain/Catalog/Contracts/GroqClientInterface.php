@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PrestoWorld.Modules\Ecommerce\Domain\Catalog\Contracts;
+namespace PrestoWorld\Modules\Ecommerce\Domain\Catalog\Contracts;
 
 /**
  * Khế ước tối thiểu để AI normalization service gọi model sinh chuẩn hóa.

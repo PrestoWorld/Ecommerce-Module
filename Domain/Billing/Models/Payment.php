@@ -24,14 +24,14 @@ final class Payment implements JsonSerializable
         public readonly string $method, // cash, card, bank_transfer, momo, zalopay, vnpay, cod, wallet
         public readonly string $gateway, // gateway used (if applicable)
         public readonly string $status, // pending, processing, success, failed, refunded, cancelled
+        public readonly int $createdAt,
+        public readonly int $updatedAt,
         public readonly ?string $transactionId = null,
         public readonly ?string $gatewayTransactionId = null,
         public readonly ?string $gatewayResponse = null,
         public readonly ?string $paidBy = null, // customer, admin, system
         public readonly ?string $paidById = null,
         public readonly array $metadata = [],
-        public readonly int $createdAt,
-        public readonly int $updatedAt,
         public readonly ?int $completedAt = null,
     ) {}
 

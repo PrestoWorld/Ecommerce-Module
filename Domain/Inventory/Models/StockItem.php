@@ -27,9 +27,9 @@ final class StockItem implements JsonSerializable
         public readonly ?Money $costPrice,
         public readonly ?Money $averageCost,
         public readonly string $status, // active, low_stock, out_of_stock, discontinued
-        public readonly array $metadata = [],
         public readonly int $createdAt,
         public readonly int $updatedAt,
+        public readonly array $metadata = [],
         public readonly ?int $lastCountedAt = null,
     ) {}
 

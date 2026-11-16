@@ -19,6 +19,8 @@ final class PaymentMethod implements JsonSerializable
         public readonly string $code, // momo, zalopay, vnpay, payos, stripe, cod, bank_transfer, wallet
         public readonly string $name,
         public readonly string $type, // gateway, offline, wallet
+        public readonly int $createdAt,
+        public readonly int $updatedAt,
         public readonly bool $isActive = true,
         public readonly bool $isDefault = false,
         public readonly array $config = [], // gateway-specific config (api keys, secrets, etc.)
@@ -29,8 +31,6 @@ final class PaymentMethod implements JsonSerializable
         public readonly ?Money $feeFixed = null,
         public readonly int $sortOrder = 0,
         public readonly array $metadata = [],
-        public readonly int $createdAt,
-        public readonly int $updatedAt,
     ) {}
 
     public static function fromArray(array $data): self

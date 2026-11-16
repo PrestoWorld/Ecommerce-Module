@@ -21,6 +21,10 @@ final class Promotion implements JsonSerializable
         public readonly string $type, // percentage, fixed_amount, buy_x_get_y, free_shipping, bundle
         public readonly string $scope, // order, product, category, cart, shipping
         public readonly Money $value, // discount amount or percentage
+        public readonly int $startsAt,
+        public readonly int $endsAt,
+        public readonly int $createdAt,
+        public readonly int $updatedAt,
         public readonly ?Money $minOrderAmount = null,
         public readonly ?Money $maxDiscountAmount = null,
         public readonly int $usageLimit = 0, // 0 = unlimited
@@ -31,15 +35,11 @@ final class Promotion implements JsonSerializable
         public readonly array $excludedProducts = [],
         public readonly array $excludedCategories = [],
         public readonly array $customerTiers = [], // which tiers can use this
-        public readonly int $startsAt,
-        public readonly int $endsAt,
         public readonly bool $isActive = true,
         public readonly bool $isStackable = false, // can combine with other promotions
         public readonly int $priority = 0,
         public readonly array $conditions = [], // complex conditions
         public readonly array $metadata = [],
-        public readonly int $createdAt,
-        public readonly int $updatedAt,
     ) {}
 
     public static function fromArray(array $data): self

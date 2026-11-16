@@ -32,13 +32,13 @@ final class Invoice implements JsonSerializable
         public readonly string $currency,
         public readonly int $issueDate,
         public readonly int $dueDate,
+        public readonly int $createdAt,
+        public readonly int $updatedAt,
         public readonly ?int $paidAt = null,
         public readonly array $items = [], // InvoiceItem[]
         public readonly array $payments = [], // Payment[]
         public readonly ?string $notes = null,
         public readonly array $metadata = [],
-        public readonly int $createdAt,
-        public readonly int $updatedAt,
     ) {}
 
     public static function fromArray(array $data): self
