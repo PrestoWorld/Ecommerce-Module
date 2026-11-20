@@ -50,22 +50,64 @@ final class NhanhClient implements NhanhClientInterface
         ];
     }
 
-    public function getAccessToken(string $appId, string $accessCode, string $secretKey): array
+    /**
+     * POST /v3.0/app/getaccesstoken?appId=X
+     * Header: Authorization: <secretKey>, Content-Type: application/json
+     * Body: {accessCode, verifyCode?}
+     */
+    public function getAccessToken(string $appId, string $accessCode, string $secretKey, string $verifyCode = ''): array
     {
+        $body = [
+            'accessCode' => $accessCode,
+        ];
+        if ($verifyCode !== '') {
+            $body['verifyCode'] = $verifyCode;
+        }
+
         return $this->post('pos', '/v3.0/app/getaccesstoken', [
             'appId' => $appId,
-        ], [
-            'accessCode' => $accessCode,
-            'secretKey' => $secretKey,
+        ], $body, [
+            'Content-Type' => 'application/json',
+            'Authorization' => $secretKey,
         ]);
     }
 
-    public function checkAccessToken(string $appId, string $businessId, string $accessToken): array
+    /**
+     * POST /v3.0/openapi/checkaccesstoken?appId=X&businessId=Y
+     * Header: Authorization: <accessToken>, Content-Type: application/json
+     * Body: {secretKey} (optional)
+     */
+    public function checkAccessToken(string $appId, string $businessId, string $accessToken, string $secretKey = ''): array
     {
+        $body = $secretKey !== '' ? ['secretKey' => $secretKey] : [];
+
         return $this->post('pos', '/v3.0/openapi/checkaccesstoken', [
             'appId' => $appId,
             'businessId' => $businessId,
-            'accessToken' => $accessToken,
+        ], $body, [
+            'Content-Type' => 'application/json',
+            'Authorization' => $accessToken,
+        ]);
+    }
+
+    /**
+     * POST to any v3.0 endpoint with proper Authorization header.
+     *
+     * @param array<string, mixed> $query  appId, businessId go here (URL params)
+     * @param array<string, mixed> $body   filters, paginator, etc.
+     *
+     * @return array{status: int, body: array<string, mixed>, raw: string}
+     */
+    public function postWithAuth(
+        string $host,
+        string $path,
+        string $accessToken,
+        array $query = [],
+        array $body = [],
+    ): array {
+        return $this->post($host, $path, $query, $body, [
+            'Content-Type' => 'application/json',
+            'Authorization' => $accessToken,
         ]);
     }
 }
