@@ -61,6 +61,22 @@ final class ProductRepository extends AbstractRepository implements ProductRepos
             'updated_at' => (int) ($data['updated_at'] ?? $now),
         ];
 
+        // Catalog partition fields — only set when the caller provides them so
+        // Ecommerce-only callers keep their existing rows untouched. The site
+        // catalog (BookPress) filters by subsite_id, so crawler imports must
+        // tag rows with it or they will not appear in the dashboard.
+        if (array_key_exists('source', $data)) {
+            $values['source'] = (string) ($data['source'] ?? 'manual');
+        }
+        if (array_key_exists('store_id', $data)) {
+            $storeId = (string) ($data['store_id'] ?? '');
+            $values['store_id'] = $storeId !== '' ? $storeId : null;
+        }
+        if (array_key_exists('subsite_id', $data)) {
+            $subsiteId = (string) ($data['subsite_id'] ?? '');
+            $values['subsite_id'] = $subsiteId !== '' ? $subsiteId : null;
+        }
+
         $existing = $this->db->select('id')->from($this->table('products'))
             ->where('business_id', $businessId)
             ->where('external_id', $externalId)
