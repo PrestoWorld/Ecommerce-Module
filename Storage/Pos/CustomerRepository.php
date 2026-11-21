@@ -61,6 +61,17 @@ final class CustomerRepository extends AbstractRepository implements CustomerRep
             'updated_at' => (int) ($data['updated_at'] ?? $now),
         ];
 
+        // Catalog partition fields — only set when the caller provides them so
+        // Ecommerce-only callers keep their existing rows untouched.
+        if (array_key_exists('store_id', $data)) {
+            $storeId = (string) ($data['store_id'] ?? '');
+            $values['store_id'] = $storeId !== '' ? $storeId : null;
+        }
+        if (array_key_exists('subsite_id', $data)) {
+            $subsiteId = (string) ($data['subsite_id'] ?? '');
+            $values['subsite_id'] = $subsiteId !== '' ? $subsiteId : null;
+        }
+
         $existing = $this->db->select('id')->from($this->table('customers'))
             ->where('business_id', $businessId)
             ->where('external_id', $externalId)

@@ -42,10 +42,17 @@ final class OrderRepository extends AbstractRepository implements OrderRepositor
         $externalId = (string) ($data['external_id'] ?? $data['id'] ?? $this->nextInternalId($businessId));
         $now = time();
 
+        // Nhanh orders have no human-readable code — fall back to the external
+        // id so the (business_id, code) unique constraint never collides on an
+        // empty string.
+        $code = isset($data['code']) && (string) $data['code'] !== ''
+            ? (string) $data['code']
+            : $externalId;
+
         $values = [
             'business_id' => $businessId,
             'external_id' => $externalId,
-            'code' => isset($data['code']) ? (string) $data['code'] : $externalId,
+            'code' => $code,
             'status' => (string) ($data['status'] ?? ''),
             'source' => (string) ($data['source'] ?? ''),
             'customer_name' => (string) ($data['customer_name'] ?? ''),
@@ -55,6 +62,18 @@ final class OrderRepository extends AbstractRepository implements OrderRepositor
             'created_at' => (int) ($data['created_at'] ?? $now),
             'updated_at' => (int) ($data['updated_at'] ?? $now),
         ];
+
+        // Catalog partition fields — only set when the caller provides them so
+        // Ecommerce-only callers keep their existing rows untouched. The site
+        // dashboard filters orders by subsite_id.
+        if (array_key_exists('store_id', $data)) {
+            $storeId = (string) ($data['store_id'] ?? '');
+            $values['store_id'] = $storeId !== '' ? $storeId : null;
+        }
+        if (array_key_exists('subsite_id', $data)) {
+            $subsiteId = (string) ($data['subsite_id'] ?? '');
+            $values['subsite_id'] = $subsiteId !== '' ? $subsiteId : null;
+        }
 
         $existing = $this->db->select('id')->from($this->table('orders'))
             ->where('business_id', $businessId)

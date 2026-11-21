@@ -58,6 +58,8 @@ return new class implements MigrationInterface {
         $table->column('delivered_at')->bigInteger()->nullable();
         $table->column('cancelled_at')->bigInteger()->nullable();
         $table->column('cancelled_reason')->string(500)->nullable();
+        $table->column('subsite_id')->string(128)->nullable();
+        $table->column('store_id')->string(64)->nullable();
 
         $table->index(['business_id', 'external_id'])->unique();
         $table->index(['business_id', 'code'])->unique();
@@ -66,6 +68,7 @@ return new class implements MigrationInterface {
         $table->index(['business_id', 'source']);
         $table->index(['business_id', 'channel_order_id']);
         $table->index(['business_id', 'created_at']);
+        $table->index(['subsite_id']);
         $table->save();
     }
 
