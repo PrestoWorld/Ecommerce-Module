@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace PrestoWorld\Modules\Ecommerce\Domain\Catalog\Storage;
 
 use Cycle\Database\DatabaseInterface;
+use Cycle\Database\Query\DeleteQuery;
+use Cycle\Database\Query\SelectQuery;
+use PrestoWorld\Core\Uuid;
 
 abstract class AbstractRepository
 {
@@ -17,6 +20,28 @@ abstract class AbstractRepository
     protected function table(string $name): string
     {
         return $this->prefix . $name;
+    }
+
+    /** Public-facing id (UUID v4). */
+    protected function uuid(): string
+    {
+        return Uuid::v4();
+    }
+
+    /**
+     * Constrain a query to a business (data source) when one is given.
+     *
+     * An empty $businessId means "no source scope" — the admin catalog screen
+     * shows masters from every source. When a business id is configured the
+     * filter is applied as before.
+     */
+    protected function scope(SelectQuery|DeleteQuery $query, string $businessId): SelectQuery|DeleteQuery
+    {
+        if ($businessId !== '') {
+            $query->where('business_id', $businessId);
+        }
+
+        return $query;
     }
 
     protected function encode(mixed $value): string

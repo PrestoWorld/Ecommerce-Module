@@ -40,6 +40,13 @@ final class AdminProductsController
         $method = strtoupper($request->method());
         $path = rtrim($request->path(), '/');
 
+        // Route params arrive URL-encoded (e.g. "ppdvn_Ng%C3%A2nh...") because
+        // the router matches against the raw path without decoding. Product
+        // external ids carry Vietnamese diacritics, so decode back to UTF-8.
+        if ($id !== null && $id !== '') {
+            $id = rawurldecode($id);
+        }
+
         try {
             if ($path === self::PREFIX) {
                 return match ($method) {
@@ -170,7 +177,7 @@ final class AdminProductsController
     private function getProduct(string $id): Response
     {
         $bid = $this->businessId();
-        $master = $this->masters->find($bid, $id);
+        $master = $this->resolveMaster($bid, $id);
         if (!$master) {
             return $this->error('Product not found', 404);
         }
@@ -179,6 +186,22 @@ final class AdminProductsController
             'success' => true,
             'data' => $this->mapDetail($bid, $master),
         ]);
+    }
+
+    /**
+     * Resolve a master by public uuid first, then fall back to external_id so
+     * old Bookmarks and headless callers keep working.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function resolveMaster(string $bid, string $key): ?array
+    {
+        $master = $this->masters->findByUuid($key);
+        if ($master !== null) {
+            return $master;
+        }
+
+        return $this->masters->find($bid, $key);
     }
 
     // ── Create ─────────────────────────────────────────────────────
@@ -219,7 +242,7 @@ final class AdminProductsController
     private function updateProduct(Request $request, string $id): Response
     {
         $bid = $this->businessId();
-        $existing = $this->masters->find($bid, $id);
+        $existing = $this->resolveMaster($bid, $id);
         if (!$existing) {
             return $this->error('Product not found', 404);
         }
@@ -239,7 +262,8 @@ final class AdminProductsController
         }
 
         $masterData = $this->mapMasterInput($input, $title);
-        $masterData['external_id'] = $id;
+        $masterData['external_id'] = (string) ($existing['external_id'] ?? $id);
+        $masterData['uuid'] = (string) ($existing['uuid'] ?? '');
         $masterData['status'] = $status;
         $masterData['created_at'] = (int) ($existing['created_at'] ?? $now);
         $masterData['updated_at'] = $now;
@@ -265,16 +289,18 @@ final class AdminProductsController
     private function deleteProduct(string $id): Response
     {
         $bid = $this->businessId();
-        $master = $this->masters->find($bid, $id);
+        $master = $this->resolveMaster($bid, $id);
         if (!$master) {
             return $this->error('Product not found', 404);
         }
 
-        foreach ($this->variants->findByMaster($bid, $id) as $variant) {
+        $externalId = (string) ($master['external_id'] ?? $id);
+
+        foreach ($this->variants->findByMaster($bid, $externalId) as $variant) {
             $this->variants->delete($bid, (string) $variant['external_id']);
         }
 
-        $this->masters->delete($bid, $id);
+        $this->masters->delete($bid, $externalId);
 
         return Response::json(['success' => true, 'data' => ['deleted' => $id]]);
     }
@@ -299,10 +325,12 @@ final class AdminProductsController
         $now = time();
 
         foreach ($ids as $id) {
-            $master = $this->masters->find($bid, $id);
+            $master = $this->resolveMaster($bid, $id);
             if (!$master) {
                 continue;
             }
+
+            $externalId = (string) ($master['external_id'] ?? $id);
 
             switch ($action) {
                 case 'publish':
@@ -340,10 +368,10 @@ final class AdminProductsController
                     break;
 
                 case 'delete':
-                    foreach ($this->variants->findByMaster($bid, $id) as $variant) {
+                    foreach ($this->variants->findByMaster($bid, $externalId) as $variant) {
                         $this->variants->delete($bid, (string) $variant['external_id']);
                     }
-                    $this->masters->delete($bid, $id);
+                    $this->masters->delete($bid, $externalId);
                     $deleted++;
                     break;
 
@@ -611,7 +639,7 @@ final class AdminProductsController
         }
 
         return [
-            'id' => (string) $master['external_id'],
+            'id' => (string) ($master['uuid'] ?? '') !== '' ? (string) $master['uuid'] : (string) $master['external_id'],
             'title' => (string) ($master['title'] ?? ''),
             'slug' => (string) ($master['slug'] ?? ''),
             'status' => (string) ($master['status'] ?? 'draft'),
@@ -694,7 +722,7 @@ final class AdminProductsController
         }
 
         return [
-            'id' => (string) $master['external_id'],
+            'id' => (string) ($master['uuid'] ?? '') !== '' ? (string) $master['uuid'] : (string) $master['external_id'],
             'title' => (string) ($master['title'] ?? ''),
             'slug' => (string) ($master['slug'] ?? ''),
             'status' => (string) ($master['status'] ?? 'draft'),

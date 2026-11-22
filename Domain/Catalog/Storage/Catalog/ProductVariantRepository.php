@@ -37,8 +37,10 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
 
     public function find(string $businessId, string $externalId): ?array
     {
-        $row = $this->db->select('*')->from($this->table('product_variants'))
-            ->where('business_id', $businessId)
+        $row = $this->scope(
+            $this->db->select('*')->from($this->table('product_variants')),
+            $businessId,
+        )
             ->where('external_id', $externalId)
             ->run()->fetch();
 
@@ -47,8 +49,10 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
 
     public function findBySku(string $businessId, string $sku): ?array
     {
-        $row = $this->db->select('*')->from($this->table('product_variants'))
-            ->where('business_id', $businessId)
+        $row = $this->scope(
+            $this->db->select('*')->from($this->table('product_variants')),
+            $businessId,
+        )
             ->where('sku', $sku)
             ->run()->fetch();
 
@@ -63,8 +67,10 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
             return [];
         }
 
-        $rows = $this->db->select('*')->from($this->table('product_variants'))
-            ->where('business_id', $businessId)
+        $rows = $this->scope(
+            $this->db->select('*')->from($this->table('product_variants')),
+            $businessId,
+        )
             ->where('master_id', $master['id'])
             ->orderBy('edition', 'ASC')
             ->run()->fetchAll();
@@ -235,8 +241,10 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
             'updated_at' => (int) ($data['updated_at'] ?? $now),
         ];
 
-        $existing = $this->db->select('id')->from($this->table('product_variants'))
-            ->where('business_id', $businessId)
+        $existing = $this->scope(
+            $this->db->select('id', 'business_id')->from($this->table('product_variants')),
+            $businessId,
+        )
             ->where('external_id', $externalId)
             ->run()->fetch();
 
@@ -246,6 +254,10 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
         } else {
             $existing = (array) $existing;
             $id = $this->int($existing, 'id');
+            // Keep the source (business_id) when the caller has no scope.
+            if ($businessId === '' && isset($existing['business_id'])) {
+                $values['business_id'] = (string) $existing['business_id'];
+            }
             $this->db->update($this->table('product_variants'), $values, ['id' => $id])->run();
             $values['id'] = $id;
         }
@@ -257,8 +269,10 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
 
     public function delete(string $businessId, string $externalId): bool
     {
-        $result = $this->db->delete($this->table('product_variants'))
-            ->where('business_id', $businessId)
+        $result = $this->scope(
+            $this->db->delete($this->table('product_variants')),
+            $businessId,
+        )
             ->where('external_id', $externalId)
             ->run();
 
@@ -272,8 +286,10 @@ final class ProductVariantRepository extends AbstractRepository implements Produ
             return [];
         }
 
-        $rows = $this->db->select('*')->from($this->table('channel_products'))
-            ->where('business_id', $businessId)
+        $rows = $this->scope(
+            $this->db->select('*')->from($this->table('channel_products')),
+            $businessId,
+        )
             ->where('variant_id', $variant['id'])
             ->run()->fetchAll();
 

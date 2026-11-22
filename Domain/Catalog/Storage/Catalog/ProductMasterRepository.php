@@ -36,9 +36,24 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
 
     public function find(string $businessId, string $externalId): ?array
     {
-        $row = $this->db->select('*')->from($this->table('product_masters'))
-            ->where('business_id', $businessId)
+        $row = $this->scope(
+            $this->db->select('*')->from($this->table('product_masters')),
+            $businessId,
+        )
             ->where('external_id', $externalId)
+            ->run()->fetch();
+
+        return $row === false ? null : $this->decoded($row);
+    }
+
+    public function findByUuid(string $uuid): ?array
+    {
+        if ($uuid === '') {
+            return null;
+        }
+
+        $row = $this->db->select('*')->from($this->table('product_masters'))
+            ->where('uuid', $uuid)
             ->run()->fetch();
 
         return $row === false ? null : $this->decoded($row);
@@ -46,8 +61,10 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
 
     public function findBySku(string $businessId, string $sku): ?array
     {
-        $row = $this->db->select('*')->from($this->table('product_masters'))
-            ->where('business_id', $businessId)
+        $row = $this->scope(
+            $this->db->select('*')->from($this->table('product_masters')),
+            $businessId,
+        )
             ->where('sku', $sku)
             ->run()->fetch();
 
@@ -56,8 +73,10 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
 
     public function findByIsbn(string $businessId, string $isbn): ?array
     {
-        $row = $this->db->select('*')->from($this->table('product_masters'))
-            ->where('business_id', $businessId)
+        $row = $this->scope(
+            $this->db->select('*')->from($this->table('product_masters')),
+            $businessId,
+        )
             ->where(fn (SelectQuery $q) => $q
                 ->where('isbn_13', $isbn)
                 ->orWhere('isbn_10', $isbn))
@@ -122,17 +141,31 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
             'published_at' => $data['published_at'] ?? null,
         ];
 
-        $existing = $this->db->select('id')->from($this->table('product_masters'))
-            ->where('business_id', $businessId)
+        $existing = $this->scope(
+            $this->db->select('id', 'uuid', 'business_id')->from($this->table('product_masters')),
+            $businessId,
+        )
             ->where('external_id', $externalId)
             ->run()->fetch();
 
         if ($existing === false) {
+            $values['uuid'] = (string) ($data['uuid'] ?? '') !== ''
+                ? (string) $data['uuid']
+                : $this->uuid();
             $result = $this->db->insert($this->table('product_masters'))->values($values)->run();
             $values['id'] = (int) $result;
         } else {
             $existing = (array) $existing;
             $id = $this->int($existing, 'id');
+            // Preserve the existing uuid so the public id never changes.
+            $values['uuid'] = (string) ($existing['uuid'] ?? '') !== ''
+                ? (string) $existing['uuid']
+                : $this->uuid();
+            // Keep the source (business_id) when the caller has no scope —
+            // an empty scope means "admin editing", not "reassign source".
+            if ($businessId === '' && isset($existing['business_id'])) {
+                $values['business_id'] = (string) $existing['business_id'];
+            }
             $this->db->update($this->table('product_masters'), $values, ['id' => $id])->run();
             $values['id'] = $id;
         }
@@ -150,8 +183,10 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
 
     public function delete(string $businessId, string $externalId): bool
     {
-        $result = $this->db->delete($this->table('product_masters'))
-            ->where('business_id', $businessId)
+        $result = $this->scope(
+            $this->db->delete($this->table('product_masters')),
+            $businessId,
+        )
             ->where('external_id', $externalId)
             ->run();
 
@@ -165,8 +200,10 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
             return [];
         }
 
-        $rows = $this->db->select('*')->from($this->table('product_variants'))
-            ->where('business_id', $businessId)
+        $rows = $this->scope(
+            $this->db->select('*')->from($this->table('product_variants')),
+            $businessId,
+        )
             ->where('master_id', $master['id'])
             ->orderBy('edition', 'ASC')
             ->run()->fetchAll();
@@ -181,8 +218,10 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
             return [];
         }
 
-        $rows = $this->db->select('*')->from($this->table('channel_products'))
-            ->where('business_id', $businessId)
+        $rows = $this->scope(
+            $this->db->select('*')->from($this->table('channel_products')),
+            $businessId,
+        )
             ->where('master_id', $master['id'])
             ->run()->fetchAll();
 
@@ -196,9 +235,11 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
      */
     public function aggregateTaxonomies(string $businessId): array
     {
-        $rows = $this->db->select('categories', 'tags')
-            ->from($this->table('product_masters'))
-            ->where('business_id', $businessId)
+        $rows = $this->scope(
+            $this->db->select('categories', 'tags')
+                ->from($this->table('product_masters')),
+            $businessId,
+        )
             ->run()->fetchAll();
 
         $categories = [];
@@ -231,7 +272,7 @@ final class ProductMasterRepository extends AbstractRepository implements Produc
 
     private function applyFilters(SelectQuery $query, string $businessId, array $filters): SelectQuery
     {
-        $query->where('business_id', $businessId);
+        $this->scope($query, $businessId);
 
         if (isset($filters['keyword']) && is_string($filters['keyword']) && $filters['keyword'] !== '') {
             $keyword = $filters['keyword'];

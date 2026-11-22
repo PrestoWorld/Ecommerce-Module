@@ -10,6 +10,13 @@ interface ProductMasterRepositoryInterface
 
     public function find(string $businessId, string $externalId): ?array;
 
+    /**
+     * Look up a master by its public uuid. Used by the admin products screen
+     * so URLs carry a stable ASCII id instead of the diacritic-laden
+     * external_id.
+     */
+    public function findByUuid(string $uuid): ?array;
+
     public function findBySku(string $businessId, string $sku): ?array;
 
     public function findByIsbn(string $businessId, string $isbn): ?array;
