@@ -30,24 +30,49 @@ final class NhanhClient implements NhanhClientInterface
     ): array {
         $client = HttpClient::create([
             'base_uri' => $this->baseUrl($host),
-            'timeout' => 30,
+            'timeout' => 120,
             'headers' => $headers,
         ]);
 
-        $response = $client->request('POST', $path, [
-            'query' => $query,
-            'json' => $body,
-        ]);
+        $maxRetries = 3;
+        $attempt = 0;
+        $lastException = null;
 
-        $status = $response->getStatusCode();
-        $raw = $response->getContent(false);
-        $decoded = json_decode($raw, true);
+        while ($attempt < $maxRetries) {
+            try {
+                $response = $client->request('POST', $path, [
+                    'query' => $query,
+                    'json' => $body,
+                ]);
 
-        return [
-            'status' => $status,
-            'body' => is_array($decoded) ? $decoded : [],
-            'raw' => $raw,
-        ];
+                $status = $response->getStatusCode();
+                $raw = $response->getContent(false);
+                $decoded = json_decode($raw, true);
+
+                // Retry on 5xx server errors
+                if ($status >= 500 && $attempt < $maxRetries - 1) {
+                    $attempt++;
+                    sleep(pow(2, $attempt));
+                    continue;
+                }
+
+                return [
+                    'status' => $status,
+                    'body' => is_array($decoded) ? $decoded : [],
+                    'raw' => $raw,
+                ];
+            } catch (\Throwable $e) {
+                $lastException = $e;
+                $attempt++;
+                if ($attempt < $maxRetries) {
+                    sleep(pow(2, $attempt));
+                    continue;
+                }
+                throw $e;
+            }
+        }
+
+        throw $lastException ?? new \RuntimeException('Max retries exceeded');
     }
 
     /**
